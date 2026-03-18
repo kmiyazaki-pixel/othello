@@ -57,12 +57,10 @@ public class GameController {
         OthelloGame.Mode mode = OthelloGame.Mode.VS_AI;
 
         if (body != null) {
-            if (body.containsKey("difficulty")) {
+            if (body.containsKey("difficulty"))
                 diff = OthelloGame.Difficulty.valueOf(body.get("difficulty").toUpperCase());
-            }
-            if ("vs_human".equalsIgnoreCase(body.get("mode"))) {
+            if ("vs_human".equalsIgnoreCase(body.get("mode")))
                 mode = OthelloGame.Mode.VS_HUMAN;
-            }
         }
 
         OthelloGame game = new OthelloGame(diff, mode);
@@ -76,12 +74,20 @@ public class GameController {
         Map<String, Object> result = new HashMap<>();
         int row = body.get("row"), col = body.get("col");
 
-        boolean moved = game.playerMove(row, col);
+        // 誰の手かを明示（VS_AIはBLACK固定、VS_HUMANはcurrentPlayer）
+        int movingPlayer = (game.getMode() == OthelloGame.Mode.VS_AI)
+                ? OthelloGame.BLACK
+                : game.getCurrentPlayer();
+
+        boolean moved = game.playerMove(row, col, movingPlayer);
         result.put("moved", moved);
 
+        // AIの手番
         if (moved && !game.isGameOver()
                 && game.getMode() == OthelloGame.Mode.VS_AI
                 && game.getCurrentPlayer() == OthelloGame.WHITE) {
+            // AIが置く前の盤面を返す（フロント側でアニメ分離に使用）
+            result.put("boardAfterPlayer", game.getBoard());
             int[] aiPos = game.aiMove();
             result.put("aiRow", aiPos != null ? aiPos[0] : -1);
             result.put("aiCol", aiPos != null ? aiPos[1] : -1);
@@ -129,22 +135,11 @@ public class GameController {
         try {
             jdbc.update(
                 "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
-                name,
-                game.getScore(OthelloGame.BLACK),
-                game.getDifficulty().name()
+                name, game.getScore(OthelloGame.BLACK), game.getDifficulty().name()
             );
         } catch (Exception e) {
             System.err.println("ランキング保存失敗: " + e.getMessage());
         }
-    }
-
-    @GetMapping("/hints")
-    public Map<String, Object> getHints(HttpSession session) {
-        OthelloGame game = getGame(session);
-        List<int[]> moves = game.getValidMoves(game.getCurrentPlayer());
-        List<Map<String, Integer>> hints = new ArrayList<>();
-        for (int[] m : moves) hints.add(Map.of("row", m[0], "col", m[1]));
-        return Map.of("hints", hints);
     }
 
     private Map<String, Object> buildState(OthelloGame game) {
@@ -155,9 +150,18 @@ public class GameController {
         state.put("winner", game.getWinner());
         state.put("blackScore", game.getScore(OthelloGame.BLACK));
         state.put("whiteScore", game.getScore(OthelloGame.WHITE));
-        state.put("validMoves", game.getValidMoves(game.getCurrentPlayer()));
         state.put("difficulty", game.getDifficulty().name());
         state.put("mode", game.getMode().name());
+
+        // validMoves: プレイヤーの番のときだけ返す（AIの番中は空）
+        boolean isPlayerTurn = game.getMode() == OthelloGame.Mode.VS_HUMAN
+                || game.getCurrentPlayer() == OthelloGame.BLACK;
+        if (!game.isGameOver() && isPlayerTurn) {
+            state.put("validMoves", game.getValidMoves(game.getCurrentPlayer()));
+        } else {
+            state.put("validMoves", List.of());
+        }
+
         return state;
     }
 }
