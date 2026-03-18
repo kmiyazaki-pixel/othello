@@ -78,15 +78,27 @@ public class GameController {
         boolean moved = game.playerMove(row, col);
         result.put("moved", moved);
 
-        // AIの手番
-        if (moved && !game.isGameOver()
-                && game.getMode() == OthelloGame.Mode.VS_AI
-                && game.getCurrentPlayer() == OthelloGame.WHITE) {
-            // AIが置く前の盤面を返す（フロント側でアニメ分離に使用）
+        // AIの手番（黒がパスし続ける限りAIが連続で打つ）
+        if (moved && game.getMode() == OthelloGame.Mode.VS_AI) {
+            // AIが置く前の盤面を保存
             result.put("boardAfterPlayer", game.getBoard());
-            int[] aiPos = game.aiMove();
-            result.put("aiRow", aiPos != null ? aiPos[0] : -1);
-            result.put("aiCol", aiPos != null ? aiPos[1] : -1);
+
+            List<int[]> aiMoves = new ArrayList<>();
+            // 黒に置ける場所がない間AIが打ち続ける
+            while (!game.isGameOver() && game.getCurrentPlayer() == OthelloGame.WHITE) {
+                int[] aiPos = game.aiMove();
+                if (aiPos != null) aiMoves.add(aiPos);
+            }
+
+            if (!aiMoves.isEmpty()) {
+                // 最後のAIの手だけフロントに返す（アニメ用）
+                int[] lastAI = aiMoves.get(aiMoves.size() - 1);
+                result.put("aiRow", lastAI[0]);
+                result.put("aiCol", lastAI[1]);
+            } else {
+                result.put("aiRow", -1);
+                result.put("aiCol", -1);
+            }
         }
 
         result.putAll(buildState(game));
