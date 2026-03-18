@@ -15,7 +15,6 @@
     <groupId>com.othello</groupId>
     <artifactId>othello</artifactId>
     <version>1.0.0</version>
-    <name>othello</name>
     <description>Othello Game Application</description>
 
     <properties>
@@ -26,6 +25,15 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
