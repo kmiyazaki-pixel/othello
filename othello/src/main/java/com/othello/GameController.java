@@ -1,5 +1,6 @@
 package com.othello;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,23 @@ public class GameController {
 
     public GameController(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
+    }
+
+    @PostConstruct
+    public void initDb() {
+        try {
+            jdbc.execute("""
+                CREATE TABLE IF NOT EXISTS ranking (
+                    id         SERIAL PRIMARY KEY,
+                    name       VARCHAR(50)  NOT NULL,
+                    score      INTEGER      NOT NULL,
+                    difficulty VARCHAR(10)  NOT NULL,
+                    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+                )
+            """);
+        } catch (Exception e) {
+            System.err.println("テーブル作成スキップ: " + e.getMessage());
+        }
     }
 
     private OthelloGame getGame(HttpSession session) {
@@ -88,12 +106,16 @@ public class GameController {
 
     @GetMapping("/ranking")
     public Map<String, Object> getRanking() {
-        List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT name, score, difficulty, " +
-            "TO_CHAR(created_at, 'MM/DD HH24:MI') AS date " +
-            "FROM ranking ORDER BY score DESC LIMIT 10"
-        );
-        return Map.of("ranking", rows);
+        try {
+            List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT name, score, difficulty, " +
+                "TO_CHAR(created_at, 'MM/DD HH24:MI') AS date " +
+                "FROM ranking ORDER BY score DESC LIMIT 10"
+            );
+            return Map.of("ranking", rows);
+        } catch (Exception e) {
+            return Map.of("ranking", List.of());
+        }
     }
 
     @DeleteMapping("/ranking")
@@ -104,12 +126,16 @@ public class GameController {
 
     private void saveRanking(String name, OthelloGame game) {
         if (!"black".equals(game.getWinner())) return;
-        jdbc.update(
-            "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
-            name,
-            game.getScore(OthelloGame.BLACK),
-            game.getDifficulty().name()
-        );
+        try {
+            jdbc.update(
+                "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
+                name,
+                game.getScore(OthelloGame.BLACK),
+                game.getDifficulty().name()
+            );
+        } catch (Exception e) {
+            System.err.println("ランキング保存失敗: " + e.getMessage());
+        }
     }
 
     @GetMapping("/hints")
