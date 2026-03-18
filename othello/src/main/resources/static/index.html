@@ -305,12 +305,10 @@ async function makeMove(row, col) {
   const hasAI = aiRow >= 0;
 
   if (hasAI) {
-    // AIが置く前の盤面（プレイヤーの手だけ反映された状態）をサーバーから取得
-    // → 実はdata.boardにはAIの手も含まれているので、
-    //   「プレイヤーの手だけ」の中間盤面をJSで再現する
-    const midBoard = applyMoveJS(boardBeforePlayer, row, col, BLACK);
+    // サーバーが返す boardAfterPlayer = プレイヤーの手だけ反映済みの盤面
+    const midBoard = data.boardAfterPlayer;
 
-    // プレイヤーの手を表示
+    // プレイヤーの手を表示（boardBeforePlayer → midBoard の差分だけフリップ）
     state = { ...data, board: midBoard, currentPlayer: WHITE, validMoves: [] };
     renderBoard(midBoard, row, col, -1, -1, boardBeforePlayer);
     updateScores();
@@ -328,7 +326,8 @@ async function makeMove(row, col) {
     updateTurnBanner(true);
     await sleep(AI_DELAY[selectedDiff] || 1200);
 
-    // AIの手を表示（midBoardを「前」としてフリップアニメ）
+    // AIの手を表示（midBoard → data.board の差分だけフリップ）
+    // midBoard はプレイヤーがひっくり返した石が確定済みなので二重フリップしない
     state = data;
     renderBoard(data.board, -1, -1, aiRow, aiCol, midBoard);
     updateScores();
