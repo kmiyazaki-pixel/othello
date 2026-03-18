@@ -1,7 +1,0 @@
-CREATE TABLE IF NOT EXISTS ranking (
-    id      SERIAL PRIMARY KEY,
-    name    VARCHAR(50)  NOT NULL,
-    score   INTEGER      NOT NULL,
-    difficulty VARCHAR(10) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
