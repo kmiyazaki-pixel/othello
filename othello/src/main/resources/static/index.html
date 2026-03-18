@@ -8,7 +8,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --green-dark: #1b5e20;
   --green-mid: #2e7d32;
   --green-light: #388e3c;
   --accent: #66bb6a;
@@ -56,16 +55,12 @@ body {
   border: none;
   background: transparent;
 }
-.tab.active {
-  background: var(--green-mid);
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-}
+.tab.active { background: var(--green-mid); color: var(--text); }
 
 .screen { display: none; flex-direction: column; align-items: center; width: 100%; }
 .screen.active { display: flex; }
 
-/* ===== START SCREEN ===== */
+/* ===== START ===== */
 .start-card {
   background: var(--card-bg);
   border: 1px solid rgba(102,187,106,0.2);
@@ -77,161 +72,142 @@ body {
   gap: 16px;
 }
 .start-card h2 { color: var(--accent); font-size: 1rem; margin-bottom: 4px; }
-
 .name-input {
-  width: 100%;
-  padding: 10px 14px;
+  width: 100%; padding: 10px 14px;
   background: rgba(0,0,0,0.3);
   border: 1px solid rgba(102,187,106,0.3);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 0.95rem;
-  outline: none;
+  border-radius: 8px; color: var(--text);
+  font-size: 0.95rem; outline: none;
 }
 .name-input:focus { border-color: var(--accent); }
-
 .mode-select { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .mode-btn {
-  padding: 12px 8px;
-  border-radius: 10px;
+  padding: 12px 8px; border-radius: 10px;
   border: 2px solid rgba(102,187,106,0.2);
-  background: rgba(0,0,0,0.2);
-  color: var(--text-dim);
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  font-size: 0.85rem;
+  background: rgba(0,0,0,0.2); color: var(--text-dim);
+  cursor: pointer; text-align: center;
+  transition: all 0.2s; font-size: 0.85rem;
 }
 .mode-btn .icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
 .mode-btn.selected { border-color: var(--accent); background: rgba(102,187,106,0.15); color: var(--text); }
-
 .diff-select { display: flex; gap: 6px; }
 .diff-btn {
-  flex: 1;
-  padding: 8px 4px;
-  border-radius: 8px;
+  flex: 1; padding: 8px 4px; border-radius: 8px;
   border: 2px solid rgba(102,187,106,0.2);
-  background: rgba(0,0,0,0.2);
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s;
+  background: rgba(0,0,0,0.2); color: var(--text-dim);
+  cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
 }
 .diff-btn.easy.selected   { border-color: #81c784; background: rgba(129,199,132,0.15); color: var(--text); }
 .diff-btn.normal.selected { border-color: #ffb74d; background: rgba(255,183,77,0.12);  color: var(--text); }
 .diff-btn.hard.selected   { border-color: #ef5350; background: rgba(239,83,80,0.12);   color: var(--text); }
-
 .start-btn {
-  padding: 14px;
-  background: linear-gradient(135deg, var(--green-mid), var(--green-light));
-  border: none;
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 1rem;
-  letter-spacing: 2px;
-  cursor: pointer;
+  padding: 14px; background: linear-gradient(135deg, var(--green-mid), var(--green-light));
+  border: none; border-radius: 10px; color: var(--text);
+  font-size: 1rem; letter-spacing: 2px; cursor: pointer; font-weight: bold;
   transition: all 0.2s;
-  font-weight: bold;
 }
 .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
 
-/* ===== GAME SCREEN ===== */
-.scoreboard {
+/* ===== TURN BANNER ===== */
+.turn-banner {
   display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
   align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 460px;
+  margin-bottom: 12px;
+  padding: 10px 20px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  transition: all 0.4s;
+  background: var(--card-bg);
+  min-height: 56px;
+}
+.turn-banner.your-turn {
+  border-color: #64b5f6;
+  background: rgba(100,181,246,0.1);
+  box-shadow: 0 0 20px rgba(100,181,246,0.2);
+}
+.turn-banner.ai-turn {
+  border-color: #ef9a9a;
+  background: rgba(239,154,154,0.1);
+  box-shadow: 0 0 20px rgba(239,154,154,0.15);
+}
+.turn-banner.p2-turn {
+  border-color: #ce93d8;
+  background: rgba(206,147,216,0.1);
+  box-shadow: 0 0 20px rgba(206,147,216,0.15);
+}
+.turn-disc {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  transition: transform 0.3s;
+}
+.turn-disc.black { background: radial-gradient(circle at 35% 30%, #666, #111); box-shadow: 2px 3px 6px rgba(0,0,0,0.6); }
+.turn-disc.white { background: radial-gradient(circle at 35% 30%, #fff, #ccc); box-shadow: 2px 3px 6px rgba(0,0,0,0.3); }
+.turn-disc.active { transform: scale(1.2); }
+.turn-text { font-size: 1rem; font-weight: bold; letter-spacing: 1px; }
+.turn-sub  { font-size: 0.75rem; color: var(--text-dim); margin-top: 1px; }
+
+/* Thinking dots */
+.dots::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* ===== SCOREBOARD ===== */
+.scoreboard {
+  display: flex; gap: 12px; margin-bottom: 10px; align-items: stretch;
+  width: 100%; max-width: 460px;
 }
 .score-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 8px 18px;
-  border: 2px solid transparent;
-  transition: all 0.3s;
-  min-width: 120px;
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  background: var(--card-bg); border-radius: 12px;
+  padding: 8px 14px; border: 2px solid transparent; transition: all 0.3s;
 }
-.score-card.active { border-color: var(--accent); box-shadow: 0 0 16px rgba(102,187,106,0.3); }
-.score-disc { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; }
-.score-disc.black { background: radial-gradient(circle at 35% 35%, #666, #111); box-shadow: inset 0 1px 3px rgba(255,255,255,0.2); }
-.score-disc.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); box-shadow: inset 0 1px 3px rgba(255,255,255,0.8); }
+.score-disc-sm { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; }
+.score-disc-sm.black { background: radial-gradient(circle at 35% 35%, #666, #111); }
+.score-disc-sm.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); }
 .score-info { flex: 1; }
-.score-name { font-size: 0.7rem; color: var(--text-dim); }
-.score-num  { font-size: 1.5rem; font-weight: bold; line-height: 1; }
+.score-name { font-size: 0.68rem; color: var(--text-dim); }
+.score-num  { font-size: 1.4rem; font-weight: bold; line-height: 1.1; }
 
-.vs-badge {
-  font-size: 0.8rem;
-  color: var(--text-dim);
-  background: rgba(0,0,0,0.3);
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-.status-bar {
-  font-size: 0.9rem;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-  height: 22px;
-  letter-spacing: 0.5px;
-}
-
+/* ===== BOARD ===== */
 .board-wrap {
-  background: rgba(0,0,0,0.25);
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.25); border-radius: 14px; padding: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
 }
-
 #board {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  background: #174d1a;
-  border: 2px solid #2e7d32;
-  border-radius: 6px;
-  padding: 2px;
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  gap: 2px; background: #174d1a;
+  border: 2px solid #2e7d32; border-radius: 6px; padding: 2px;
 }
-
 .cell {
-  width: 54px; height: 54px;
-  background: var(--green-mid);
-  border-radius: 3px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.12s;
+  width: 54px; height: 54px; background: var(--green-mid);
+  border-radius: 3px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: background 0.12s;
 }
 .cell:hover { background: var(--green-light); }
 .cell.last-move { background: #33691e; }
 .cell.hint::after {
-  content: '';
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  border: 2px dashed rgba(255,255,255,0.3);
+  content: ''; width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); border: 2px dashed rgba(255,255,255,0.3);
   animation: pulse 1.5s ease-in-out infinite;
 }
 @keyframes pulse {
   0%,100% { opacity: 0.5; transform: scale(0.9); }
   50%      { opacity: 1;   transform: scale(1.1); }
 }
-
-.disc {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  position: absolute;
-}
-.disc.black {
-  background: radial-gradient(circle at 35% 30%, #555, #111);
-  box-shadow: 2px 3px 8px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.12);
-}
-.disc.white {
-  background: radial-gradient(circle at 35% 30%, #fff, #ccc);
-  box-shadow: 2px 3px 8px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,255,255,0.9);
-}
-
+.disc { width: 44px; height: 44px; border-radius: 50%; position: absolute; }
+.disc.black { background: radial-gradient(circle at 35% 30%, #555, #111); box-shadow: 2px 3px 8px rgba(0,0,0,0.7); }
+.disc.white { background: radial-gradient(circle at 35% 30%, #fff, #ccc); box-shadow: 2px 3px 8px rgba(0,0,0,0.35); }
 .disc.flip-to-black { animation: flipToBlack 0.45s ease forwards; }
 .disc.flip-to-white { animation: flipToWhite 0.45s ease forwards; }
 @keyframes flipToBlack {
@@ -246,91 +222,47 @@ body {
   50% { transform: rotateY(90deg); background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
   100%{ transform: rotateY(0deg);  background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
 }
-.disc.place {
-  animation: placeDisc 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
-}
+.disc.place { animation: placeDisc 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
 @keyframes placeDisc {
   0%  { transform: scale(0) translateY(-8px); opacity: 0; }
   70% { transform: scale(1.15); }
   100%{ transform: scale(1); opacity: 1; }
 }
 
-.controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+/* ===== CONTROLS ===== */
+.controls { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
 .btn {
-  background: var(--green-mid);
-  color: var(--text);
-  border: 1px solid rgba(102,187,106,0.4);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s;
+  background: var(--green-mid); color: var(--text);
+  border: 1px solid rgba(102,187,106,0.4); border-radius: 8px;
+  padding: 8px 16px; font-size: 0.85rem; cursor: pointer; transition: all 0.15s;
 }
 .btn:hover { background: var(--green-light); transform: translateY(-1px); }
 .btn.outline { background: transparent; color: var(--text-dim); }
 .btn.outline.on { background: rgba(102,187,106,0.15); color: var(--text); }
 
-/* ===== RANKING SCREEN ===== */
+/* ===== RANKING ===== */
 .ranking-wrap { width: 100%; max-width: 440px; }
-.ranking-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+.ranking-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .ranking-title { color: var(--accent); font-size: 1.1rem; letter-spacing: 3px; }
 .rank-table { width: 100%; border-collapse: collapse; }
-.rank-table th {
-  text-align: left;
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  border-bottom: 1px solid rgba(102,187,106,0.2);
-}
-.rank-table td {
-  padding: 10px 12px;
-  font-size: 0.9rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.diff-tag {
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-}
+.rank-table th { text-align: left; padding: 8px 12px; font-size: 0.75rem; color: var(--text-dim); border-bottom: 1px solid rgba(102,187,106,0.2); }
+.rank-table td { padding: 10px 12px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.diff-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; background: rgba(255,255,255,0.08); }
 .diff-tag.EASY   { color: #81c784; }
 .diff-tag.NORMAL { color: #ffb74d; }
 .diff-tag.HARD   { color: #ef5350; }
 .empty-rank { text-align: center; color: var(--text-dim); padding: 40px; font-size: 0.9rem; }
-.rank-note  { text-align: center; color: rgba(165,214,167,0.4); font-size: 0.72rem; margin-top: 12px; }
 
-/* ===== RESULT OVERLAY ===== */
-.overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.8);
-  align-items: center; justify-content: center;
-  z-index: 100;
-}
+/* ===== OVERLAY ===== */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 100; }
 .overlay.show { display: flex; }
 .dialog {
   background: linear-gradient(135deg, #1b5e20, #2e7d32);
-  border-radius: 20px;
-  padding: 36px 44px;
-  text-align: center;
-  border: 2px solid var(--accent);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  border-radius: 20px; padding: 36px 44px; text-align: center;
+  border: 2px solid var(--accent); box-shadow: 0 20px 60px rgba(0,0,0,0.8);
   animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
 }
-@keyframes popIn {
-  from { transform: scale(0.5); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
-}
+@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .dialog-emoji { font-size: 3rem; margin-bottom: 8px; }
 .dialog h2 { font-size: 1.6rem; margin-bottom: 8px; color: var(--accent); }
 .dialog p  { color: #c8e6c9; margin-bottom: 20px; }
@@ -353,7 +285,7 @@ body {
   <button class="tab" onclick="switchTab('ranking', this)">🏆 ランキング</button>
 </div>
 
-<!-- ===== GAME SCREEN ===== -->
+<!-- GAME SCREEN -->
 <div class="screen active" id="screen-game">
 
   <!-- START -->
@@ -363,7 +295,6 @@ body {
         <h2>プレイヤー名</h2>
         <input class="name-input" id="player-name" type="text" placeholder="名前を入力" maxlength="12" value="Player">
       </div>
-
       <div>
         <h2>モード</h2>
         <div class="mode-select">
@@ -375,41 +306,47 @@ body {
           </div>
         </div>
       </div>
-
       <div id="diff-section">
         <h2>難易度</h2>
         <div class="diff-select">
-          <button class="diff-btn easy"          onclick="selectDiff('EASY')">😊 かんたん</button>
+          <button class="diff-btn easy"           onclick="selectDiff('EASY')">😊 かんたん</button>
           <button class="diff-btn normal selected" onclick="selectDiff('NORMAL')">😐 ふつう</button>
-          <button class="diff-btn hard"           onclick="selectDiff('HARD')">😈 むずかしい</button>
+          <button class="diff-btn hard"            onclick="selectDiff('HARD')">😈 むずかしい</button>
         </div>
       </div>
-
       <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
     </div>
   </div>
 
   <!-- PLAY -->
-  <div id="view-play" style="display:none; flex-direction:column; align-items:center;">
-    <div class="scoreboard">
-      <div class="score-card" id="black-card">
-        <div class="score-disc black"></div>
-        <div class="score-info">
-          <div class="score-name" id="black-name">あなた (黒)</div>
-          <div class="score-num" id="black-score">2</div>
-        </div>
-      </div>
-      <div class="vs-badge" id="vs-badge">VS AI</div>
-      <div class="score-card" id="white-card">
-        <div class="score-disc white"></div>
-        <div class="score-info">
-          <div class="score-name" id="white-name">AI (白)</div>
-          <div class="score-num" id="white-score">2</div>
-        </div>
+  <div id="view-play" style="display:none; flex-direction:column; align-items:center; width:100%; max-width:480px;">
+
+    <!-- ターン表示バナー -->
+    <div class="turn-banner" id="turn-banner">
+      <div class="turn-disc black" id="turn-disc"></div>
+      <div>
+        <div class="turn-text" id="turn-text">あなたの番</div>
+        <div class="turn-sub"  id="turn-sub">石を置いてください</div>
       </div>
     </div>
 
-    <div class="status-bar" id="status">あなたの番です</div>
+    <!-- スコア -->
+    <div class="scoreboard">
+      <div class="score-card" id="black-card">
+        <div class="score-disc-sm black"></div>
+        <div class="score-info">
+          <div class="score-name" id="black-name">あなた (黒)</div>
+          <div class="score-num"  id="black-score">2</div>
+        </div>
+      </div>
+      <div class="score-card" id="white-card">
+        <div class="score-disc-sm white"></div>
+        <div class="score-info">
+          <div class="score-name" id="white-name">AI (白)</div>
+          <div class="score-num"  id="white-score">2</div>
+        </div>
+      </div>
+    </div>
 
     <div class="board-wrap">
       <div id="board"></div>
@@ -423,7 +360,7 @@ body {
   </div>
 </div>
 
-<!-- ===== RANKING SCREEN ===== -->
+<!-- RANKING SCREEN -->
 <div class="screen" id="screen-ranking">
   <div class="ranking-wrap">
     <div class="ranking-header">
@@ -431,26 +368,21 @@ body {
       <button class="btn outline" style="font-size:0.75rem;padding:5px 10px" onclick="clearRanking()">🗑 クリア</button>
     </div>
     <table class="rank-table">
-      <thead>
-        <tr>
-          <th>#</th><th>名前</th><th>スコア</th><th>難易度</th><th>日時</th>
-        </tr>
-      </thead>
+      <thead><tr><th>#</th><th>名前</th><th>スコア</th><th>難易度</th><th>日時</th></tr></thead>
       <tbody id="rank-body"></tbody>
     </table>
     <div id="rank-empty" class="empty-rank" style="display:none">
       まだ記録がありません。<br>AI対戦に勝利すると登録されます！
     </div>
-    <div class="rank-note">※ サーバー再起動時にリセットされる場合があります</div>
   </div>
 </div>
 
-<!-- Result overlay -->
+<!-- Result -->
 <div class="overlay" id="overlay">
   <div class="dialog">
     <div class="dialog-emoji" id="result-emoji"></div>
     <h2 id="result-title"></h2>
-    <p id="result-msg"></p>
+    <p  id="result-msg"></p>
     <div class="dialog-btns">
       <button class="btn" onclick="backToStart()">🏠 メニュー</button>
       <button class="btn" onclick="replayGame()">🔄 もう一度</button>
@@ -467,8 +399,14 @@ let prevBoard = null;
 let selectedMode = 'ai';
 let selectedDiff = 'NORMAL';
 let currentGameConfig = {};
+let playerName = 'Player';
 
-// ===== TAB =====
+// AI の思考時間 (ms) — 難易度に応じて変える
+const AI_DELAY = { EASY: 600, NORMAL: 1000, HARD: 1500 };
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ===== TABS =====
 function switchTab(tab, el) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -492,11 +430,11 @@ function selectDiff(diff) {
 }
 
 async function startGame() {
-  const name = document.getElementById('player-name').value.trim() || 'Player';
+  playerName = document.getElementById('player-name').value.trim() || 'Player';
   await fetch('/api/name', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
+    body: JSON.stringify({ name: playerName })
   });
 
   currentGameConfig = {
@@ -512,10 +450,8 @@ async function startGame() {
   state = await res.json();
   prevBoard = null;
 
-  document.getElementById('black-name').textContent = name + ' (黒)';
-  document.getElementById('white-name').textContent = selectedMode === '2p' ? 'Player2 (白)' : 'AI (白)';
-  document.getElementById('vs-badge').textContent = selectedMode === '2p' ? '2P'
-    : { EASY:'かんたん', NORMAL:'ふつう', HARD:'むずかしい' }[selectedDiff];
+  document.getElementById('black-name').textContent = playerName + '（黒）';
+  document.getElementById('white-name').textContent = selectedMode === '2p' ? 'Player2（白）' : 'AI（白）';
 
   document.getElementById('view-start').style.display = 'none';
   document.getElementById('view-play').style.display = 'flex';
@@ -544,6 +480,7 @@ async function replayGame() {
 // ===== MOVE =====
 async function makeMove(row, col) {
   if (thinking || !state || state.gameOver) return;
+  if (state.mode === 'VS_AI' && state.currentPlayer !== BLACK) return;
   if (!state.validMoves || !state.validMoves.some(m => m[0] === row && m[1] === col)) return;
 
   thinking = true;
@@ -555,17 +492,44 @@ async function makeMove(row, col) {
     body: JSON.stringify({ row, col })
   });
   const data = await res.json();
-
   if (!data.moved) { thinking = false; return; }
 
-  // ★ state を先に更新してからrenderBoard（ヒントバグ修正）
   state = data;
-  renderBoard(data.board, row, col, data.aiRow ?? -1, data.aiCol ?? -1, boardBefore);
+  renderBoard(data.board, row, col, -1, -1, boardBefore);
   updateScores();
-  updateStatus();
 
+  if (state.gameOver) {
+    updateTurnBanner();
+    setTimeout(showResult, 700);
+    thinking = false;
+    return;
+  }
+
+  // AIの番
+  if (state.mode === 'VS_AI' && state.currentPlayer === WHITE) {
+    updateTurnBanner(); // "AIが考え中…"
+
+    const delay = AI_DELAY[selectedDiff] || 1000;
+    await sleep(delay);
+
+    // AIの手を反映
+    const aiBefore = state.board.map(r => [...r]);
+    state = data; // aiRow/aiCol はすでに data に入っている
+
+    renderBoard(data.board, row, col, data.aiRow ?? -1, data.aiCol ?? -1, boardBefore);
+    updateScores();
+
+    // stateを再取得（AIが動いた後の状態はサーバー側で確定済み）
+    const sr = await fetch('/api/state');
+    state = await sr.json();
+  }
+
+  updateTurnBanner();
+  renderBoard(state.board, -1, -1, -1, -1, null);
+  updateScores();
+
+  if (state.gameOver) setTimeout(showResult, 300);
   thinking = false;
-  if (state.gameOver) setTimeout(showResult, 700);
 }
 
 // ===== RENDER =====
@@ -573,14 +537,13 @@ function render() {
   if (!state) return;
   renderBoard(state.board, -1, -1, -1, -1, prevBoard);
   updateScores();
-  updateStatus();
+  updateTurnBanner();
 }
 
 function renderBoard(board, placedRow, placedCol, aiRow, aiCol, oldBoard) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
 
-  // ★ ヒントは state.validMoves を使う（stateは常に最新）
   const validSet = new Set((state?.validMoves || []).map(m => `${m[0]},${m[1]}`));
 
   for (let r = 0; r < 8; r++) {
@@ -588,15 +551,15 @@ function renderBoard(board, placedRow, placedCol, aiRow, aiCol, oldBoard) {
       const cell = document.createElement('div');
       cell.className = 'cell';
 
-      const isPlaced = (r === placedRow && c === placedCol) || (r === aiRow && c === aiCol);
-      if (isPlaced) cell.classList.add('last-move');
+      const isPlayerPlaced = (r === placedRow && c === placedCol);
+      const isAiPlaced     = (r === aiRow && c === aiCol);
+      if (isPlayerPlaced || isAiPlaced) cell.classList.add('last-move');
 
       const val = board[r][c];
       if (val !== 0) {
         const disc = document.createElement('div');
         disc.className = 'disc ' + (val === BLACK ? 'black' : 'white');
-
-        if (isPlaced) {
+        if (isPlayerPlaced || isAiPlaced) {
           disc.classList.add('place');
         } else if (oldBoard && oldBoard[r][c] !== 0 && oldBoard[r][c] !== val) {
           disc.classList.add(val === BLACK ? 'flip-to-black' : 'flip-to-white');
@@ -617,22 +580,56 @@ function updateScores() {
   if (!state) return;
   document.getElementById('black-score').textContent = state.blackScore;
   document.getElementById('white-score').textContent = state.whiteScore;
-  document.getElementById('black-card').classList.toggle('active', state.currentPlayer === BLACK);
-  document.getElementById('white-card').classList.toggle('active', state.currentPlayer === WHITE);
 }
 
-function updateStatus() {
-  if (!state || state.gameOver) return;
-  if (state.currentPlayer === BLACK) {
-    setStatus('⚫ あなたの番です');
-  } else if (state.mode === 'VS_AI') {
-    setStatus('🤖 AIが考え中…');
+// ===== TURN BANNER =====
+function updateTurnBanner() {
+  if (!state) return;
+  const banner   = document.getElementById('turn-banner');
+  const disc     = document.getElementById('turn-disc');
+  const text     = document.getElementById('turn-text');
+  const sub      = document.getElementById('turn-sub');
+  const isVsAI   = state.mode === 'VS_AI';
+  const isBlack  = state.currentPlayer === BLACK;
+
+  // ゲームオーバー時
+  if (state.gameOver) {
+    banner.className = 'turn-banner';
+    disc.className = 'turn-disc ' + (state.winner === 'black' ? 'black' : 'white');
+    text.textContent = state.winner === 'draw' ? '引き分け！' : (state.winner === 'black' ? '黒の勝ち！' : '白の勝ち！');
+    sub.textContent = `黒 ${state.blackScore} - 白 ${state.whiteScore}`;
+    return;
+  }
+
+  if (isVsAI) {
+    if (isBlack) {
+      // プレイヤーの番
+      banner.className = 'turn-banner your-turn';
+      disc.className = 'turn-disc black active';
+      text.innerHTML  = `${playerName}の番（黒）`;
+      sub.innerHTML   = '石を置いてください';
+    } else {
+      // AIの番
+      banner.className = 'turn-banner ai-turn';
+      disc.className = 'turn-disc white active';
+      text.innerHTML  = 'AIが考え中<span class="dots"></span>';
+      sub.innerHTML   = 'しばらくお待ちください';
+    }
   } else {
-    setStatus('⚪ 白の番です');
+    // 2人対戦
+    if (isBlack) {
+      banner.className = 'turn-banner your-turn';
+      disc.className = 'turn-disc black active';
+      text.innerHTML  = `${playerName}の番（黒）`;
+      sub.innerHTML   = '石を置いてください';
+    } else {
+      banner.className = 'turn-banner p2-turn';
+      disc.className = 'turn-disc white active';
+      text.innerHTML  = 'Player2の番（白）';
+      sub.innerHTML   = '石を置いてください';
+    }
   }
 }
-
-function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
 function toggleHints() {
   showHints = !showHints;
@@ -646,7 +643,9 @@ function showResult() {
   const w = state.winner;
   const isVsAI = state.mode === 'VS_AI';
   const emoji = w === 'draw' ? '🤝' : w === 'black' ? (isVsAI ? '🎉' : '⚫') : (isVsAI ? '🤖' : '⚪');
-  const title = w === 'draw' ? '引き分け！' : w === 'black' ? (isVsAI ? 'あなたの勝ち！' : '黒の勝ち！') : (isVsAI ? 'AIの勝ち…' : '白の勝ち！');
+  const title = w === 'draw' ? '引き分け！'
+              : w === 'black' ? (isVsAI ? 'あなたの勝ち！' : '黒の勝ち！')
+              : (isVsAI ? 'AIの勝ち…' : '白の勝ち！');
   document.getElementById('result-emoji').textContent = emoji;
   document.getElementById('result-title').textContent = title;
   document.getElementById('result-msg').textContent = `最終スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
@@ -660,22 +659,17 @@ async function loadRanking() {
   const tbody = document.getElementById('rank-body');
   const empty = document.getElementById('rank-empty');
   tbody.innerHTML = '';
-
-  if (!data.ranking || data.ranking.length === 0) {
-    empty.style.display = '';
-    return;
-  }
+  if (!data.ranking || data.ranking.length === 0) { empty.style.display = ''; return; }
   empty.style.display = 'none';
   const medals = ['🥇','🥈','🥉'];
   const diffLabel = { EASY:'かんたん', NORMAL:'ふつう', HARD:'むずかしい' };
-
   data.ranking.forEach((entry, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${medals[i] || i+1}</td>
       <td>${entry.name}</td>
       <td><strong>${entry.score}</strong></td>
-      <td><span class="diff-tag ${entry.difficulty}">${diffLabel[entry.difficulty] || entry.difficulty}</span></td>
+      <td><span class="diff-tag ${entry.difficulty}">${diffLabel[entry.difficulty]||entry.difficulty}</span></td>
       <td style="font-size:0.75rem;color:var(--text-dim)">${entry.date}</td>
     `;
     tbody.appendChild(tr);
