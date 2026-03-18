@@ -113,6 +113,9 @@ body {
 .diff-tag { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; background: rgba(255,255,255,0.08); }
 .diff-tag.EASY{color:#81c784} .diff-tag.NORMAL{color:#ffb74d} .diff-tag.HARD{color:#ef5350}
 .empty-rank { text-align: center; color: var(--text-dim); padding: 40px; font-size: 0.9rem; }
+.rank-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.rank-tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 2px solid rgba(102,187,106,0.2); background: rgba(0,0,0,0.2); color: var(--text-dim); cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+.rank-tab.active { border-color: var(--accent); background: rgba(102,187,106,0.15); color: var(--text); }
 
 /* OVERLAY */
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 100; }
@@ -199,11 +202,16 @@ body {
 <div class="screen" id="screen-ranking">
   <div class="ranking-wrap">
     <div class="ranking-header">
-      <div class="ranking-title">🏆 RANKING TOP 10</div>
+      <div class="ranking-title">🏆 RANKING</div>
       <button class="btn outline" style="font-size:.75rem;padding:5px 10px" onclick="clearRanking()">🗑 クリア</button>
     </div>
+    <div class="rank-tabs">
+      <button class="rank-tab active" onclick="switchRankTab('HARD',this)">😈 むずかしい</button>
+      <button class="rank-tab" onclick="switchRankTab('NORMAL',this)">😐 ふつう</button>
+      <button class="rank-tab" onclick="switchRankTab('EASY',this)">😊 かんたん</button>
+    </div>
     <table class="rank-table">
-      <thead><tr><th>#</th><th>名前</th><th>スコア</th><th>難易度</th><th>日時</th></tr></thead>
+      <thead><tr><th>#</th><th>名前</th><th>スコア</th><th>日時</th></tr></thead>
       <tbody id="rank-body"></tbody>
     </table>
     <div id="rank-empty" class="empty-rank" style="display:none">まだ記録がありません。<br>AI対戦に勝利すると登録されます！</div>
@@ -488,20 +496,35 @@ function showResult() {
   document.getElementById('overlay').classList.add('show');
 }
 
-async function loadRanking() {
-  const data = await fetch('/api/ranking').then(r => r.json());
+let currentRankDiff = 'HARD';
+let allRanking = [];
+
+function switchRankTab(diff, el) {
+  currentRankDiff = diff;
+  document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderRanking();
+}
+
+function renderRanking() {
   const tbody = document.getElementById('rank-body');
   const empty = document.getElementById('rank-empty');
   tbody.innerHTML = '';
-  if (!data.ranking?.length) { empty.style.display = ''; return; }
+  const filtered = allRanking.filter(e => e.difficulty === currentRankDiff);
+  if (!filtered.length) { empty.style.display = ''; return; }
   empty.style.display = 'none';
   const medals = ['🥇','🥈','🥉'];
-  const diffLabel = {EASY:'かんたん',NORMAL:'ふつう',HARD:'むずかしい'};
-  data.ranking.forEach((e, i) => {
+  filtered.forEach((e, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${medals[i]||i+1}</td><td>${e.name}</td><td><strong>${e.score}</strong></td><td><span class="diff-tag ${e.difficulty}">${diffLabel[e.difficulty]||e.difficulty}</span></td><td style="font-size:.75rem;color:var(--text-dim)">${e.date}</td>`;
+    tr.innerHTML = `<td>${medals[i]||i+1}</td><td>${e.name}</td><td><strong>${e.score}</strong></td><td style="font-size:.75rem;color:var(--text-dim)">${e.date}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function loadRanking() {
+  const data = await fetch('/api/ranking').then(r => r.json());
+  allRanking = data.ranking || [];
+  renderRanking();
 }
 
 async function clearRanking() {
