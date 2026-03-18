@@ -1,19 +1,20 @@
 package com.othello;
 
 import jakarta.servlet.http.HttpSession;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 @RequestMapping("/api")
 public class GameController {
 
-    // In-memory ranking (最大100件)
-    private static final List<Map<String, Object>> ranking = new CopyOnWriteArrayList<>();
+    private final JdbcTemplate jdbc;
+
+    public GameController(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+    }
 
     private OthelloGame getGame(HttpSession session) {
         OthelloGame game = (OthelloGame) session.getAttribute("game");
@@ -70,7 +71,6 @@ public class GameController {
 
         result.putAll(buildState(game));
 
-        // ゲーム終了時にランキング登録（VSAIのみ）
         if (game.isGameOver() && game.getMode() == OthelloGame.Mode.VS_AI) {
             String name = (String) session.getAttribute("playerName");
             if (name == null) name = "Player";
@@ -88,22 +88,28 @@ public class GameController {
 
     @GetMapping("/ranking")
     public Map<String, Object> getRanking() {
-        List<Map<String, Object>> sorted = ranking.stream()
-            .sorted((a, b) -> Integer.compare((int)b.get("score"), (int)a.get("score")))
-            .limit(10)
-            .toList();
-        return Map.of("ranking", sorted);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT name, score, difficulty, " +
+            "TO_CHAR(created_at, 'MM/DD HH24:MI') AS date " +
+            "FROM ranking ORDER BY score DESC LIMIT 10"
+        );
+        return Map.of("ranking", rows);
+    }
+
+    @DeleteMapping("/ranking")
+    public Map<String, Object> clearRanking() {
+        jdbc.execute("DELETE FROM ranking");
+        return Map.of("ok", true);
     }
 
     private void saveRanking(String name, OthelloGame game) {
-        if (!"black".equals(game.getWinner())) return; // 勝利時のみ
-        Map<String, Object> entry = new LinkedHashMap<>();
-        entry.put("name", name);
-        entry.put("score", game.getScore(OthelloGame.BLACK));
-        entry.put("difficulty", game.getDifficulty().name());
-        entry.put("date", LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd HH:mm")));
-        ranking.add(entry);
-        if (ranking.size() > 100) ranking.remove(0);
+        if (!"black".equals(game.getWinner())) return;
+        jdbc.update(
+            "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
+            name,
+            game.getScore(OthelloGame.BLACK),
+            game.getDifficulty().name()
+        );
     }
 
     @GetMapping("/hints")
