@@ -109,10 +109,11 @@ public class GameController {
     @GetMapping("/ranking")
     public Map<String, Object> getRanking() {
         try {
+            // 全難易度のTOP10をまとめて返す（フロントで難易度別に表示）
             List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT name, score, difficulty, " +
                 "TO_CHAR(created_at, 'MM/DD HH24:MI') AS date " +
-                "FROM ranking ORDER BY score DESC LIMIT 10"
+                "FROM ranking ORDER BY difficulty, score DESC"
             );
             return Map.of("ranking", rows);
         } catch (Exception e) {
