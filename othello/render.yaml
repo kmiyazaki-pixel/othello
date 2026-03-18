@@ -1,7 +1,7 @@
 services:
   - type: web
     name: othello
-    env: java
+    env: docker
     buildCommand: mvn clean package -DskipTests
     startCommand: java -jar target/othello-1.0.0.jar
     envVars:
