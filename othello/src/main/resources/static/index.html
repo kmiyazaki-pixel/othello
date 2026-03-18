@@ -150,7 +150,7 @@ body {
         <h2>モード</h2>
         <div class="mode-select">
           <div class="mode-btn selected" id="mode-ai" onclick="selectMode('ai')"><span class="icon">🤖</span>AI対戦</div>
-          <div class="mode-btn" id="mode-2p" onclick="selectMode('2p')"><span class="icon">👥</span>2人対戦</div>
+          <div class="mode-btn" id="mode-2p" onclick="selectMode('2p')"><span class="icon">👥</span>オンライン対戦</div>
         </div>
       </div>
       <div id="diff-section">
@@ -162,6 +162,31 @@ body {
         </div>
       </div>
       <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
+    </div>
+  </div>
+
+  <!-- ROOM -->
+  <div id="view-room" style="display:none;">
+    <div class="start-card">
+      <div style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:8px;">👥</div>
+        <h2 style="font-size:1.2rem;letter-spacing:2px;">オンライン対戦</h2>
+      </div>
+      <div>
+        <h2>プレイヤー名</h2>
+        <input class="name-input" id="room-player-name" type="text" placeholder="名前を入力" maxlength="12" value="Player">
+      </div>
+      <div>
+        <h2>ルームID</h2>
+        <input class="name-input" id="room-id-input" type="text" placeholder="例: ABCD" maxlength="10"
+          style="text-transform:uppercase;letter-spacing:4px;font-size:1.2rem;text-align:center;"
+          oninput="this.value=this.value.toUpperCase()">
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">
+          同じIDを入力した2人がマッチします
+        </div>
+      </div>
+      <button class="start-btn" onclick="joinRoom()">🚪 部屋に入る</button>
+      <button class="btn outline" onclick="backToModeSelect()" style="text-align:center;">← 戻る</button>
     </div>
   </div>
 
@@ -237,9 +262,21 @@ body {
   </div>
 </div>
 
+<!-- Waiting overlay -->
+<div class="overlay" id="waiting-overlay">
+  <div class="dialog" style="min-width:280px;">
+    <div style="font-size:2.5rem;margin-bottom:12px;">⏳</div>
+    <h2 id="waiting-title" style="margin-bottom:8px;">待機中…</h2>
+    <p id="waiting-msg" style="margin-bottom:20px;">対戦相手を待っています</p>
+    <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:16px;" id="waiting-room-id"></div>
+    <button class="btn outline" onclick="leaveRoom()">キャンセル</button>
+  </div>
+</div>
+
 <script>
 const BLACK = 1, WHITE = 2;
 let state = null, showHints = false, thinking = false;
+let ws = null, myColor = null;
 let prevBoard = null, selectedMode = 'ai', selectedDiff = 'NORMAL';
 let currentGameConfig = {}, playerName = 'Player';
 const AI_DELAY = { EASY: 700, NORMAL: 1200, HARD: 1800 };
@@ -267,27 +304,52 @@ function selectDiff(diff) {
 
 async function startGame() {
   playerName = document.getElementById('player-name').value.trim() || 'Player';
+
+  if (selectedMode === '2p') {
+    // オンライン対戦 → ルーム画面へ
+    document.getElementById('room-player-name').value = playerName;
+    document.getElementById('view-start').style.display = 'none';
+    document.getElementById('view-room').style.display = '';
+    return;
+  }
+
   await fetch('/api/name', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: playerName}) });
-  currentGameConfig = { mode: selectedMode === '2p' ? 'vs_human' : 'vs_ai', difficulty: selectedDiff };
+  currentGameConfig = { mode: 'vs_ai', difficulty: selectedDiff };
   const res = await fetch('/api/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(currentGameConfig) });
   state = await res.json();
   prevBoard = null;
   document.getElementById('black-name').textContent = playerName + '（黒）';
-  document.getElementById('white-name').textContent = selectedMode === '2p' ? 'Player2（白）' : 'AI（白）';
+  document.getElementById('white-name').textContent = 'AI（白）';
   document.getElementById('view-start').style.display = 'none';
   document.getElementById('view-play').style.display = 'flex';
   render();
+}
+
+function backToModeSelect() {
+  document.getElementById('view-room').style.display = 'none';
+  document.getElementById('view-start').style.display = '';
 }
 
 function backToStart() {
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('view-play').style.display = 'none';
   document.getElementById('view-start').style.display = '';
+  document.getElementById('view-room').style.display = 'none';
   state = null; prevBoard = null; thinking = false;
+  if (ws) { ws.close(); ws = null; }
+  myColor = null;
 }
 
 async function replayGame() {
   document.getElementById('overlay').classList.remove('show');
+  if (ws) {
+    // オンライン対戦はルーム画面に戻る
+    ws.close(); ws = null; myColor = null;
+    state = null; prevBoard = null; thinking = false;
+    document.getElementById('view-play').style.display = 'none';
+    document.getElementById('view-room').style.display = '';
+    return;
+  }
   const res = await fetch('/api/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(currentGameConfig) });
   state = await res.json();
   prevBoard = null; thinking = false;
@@ -296,6 +358,16 @@ async function replayGame() {
 
 async function makeMove(row, col) {
   if (thinking || !state || state.gameOver) return;
+
+  // オンライン対戦 (WebSocket)
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const myColorNum = myColor === 'black' ? BLACK : WHITE;
+    if (state.currentPlayer !== myColorNum) return;
+    if (!state.validMoves || !state.validMoves.some(m => m[0] === row && m[1] === col)) return;
+    ws.send(JSON.stringify({ type: 'move', row, col }));
+    return;
+  }
+
   // VS_AIモードではBLACKの番のみクリック受付
   if (state.mode === 'VS_AI' && state.currentPlayer !== BLACK) return;
   if (!state.validMoves || !state.validMoves.some(m => m[0] === row && m[1] === col)) return;
@@ -473,16 +545,22 @@ function updateTurnBanner(aiThinking) {
       sub.textContent = '';
     }
   } else {
-    if (isBlack) {
+    // オンライン対戦
+    const myColorNum = myColor === 'black' ? BLACK : WHITE;
+    const isMyTurn = state.currentPlayer === myColorNum;
+    const turnName = isBlack
+      ? document.getElementById('black-name').textContent
+      : document.getElementById('white-name').textContent;
+    if (isMyTurn) {
       banner.className = 'turn-banner your-turn';
-      disc.className = 'turn-disc-big black pulse';
-      main.textContent = `${playerName}の番（黒）`;
+      disc.className = `turn-disc-big ${isBlack ? 'black' : 'white'} pulse`;
+      main.textContent = `あなたの番（${isBlack ? '黒' : '白'}）`;
       sub.textContent = '石を置いてください';
     } else {
       banner.className = 'turn-banner p2-turn';
-      disc.className = 'turn-disc-big white pulse';
-      main.textContent = 'Player2の番（白）';
-      sub.textContent = '石を置いてください';
+      disc.className = `turn-disc-big ${isBlack ? 'black' : 'white'} pulse`;
+      main.textContent = `${turnName}の番`;
+      sub.textContent = '相手の手を待っています';
     }
   }
 }
@@ -550,6 +628,105 @@ function renderRanking() {
     tr.innerHTML = `<td>${medals[i]||i+1}</td><td>${e.name}</td><td><strong>${e.score}</strong></td><td style="font-size:.75rem;color:var(--text-dim)">${e.date}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+// ===== ROOM / WEBSOCKET =====
+function joinRoom() {
+  const name = document.getElementById('room-player-name').value.trim() || 'Player';
+  const roomId = document.getElementById('room-id-input').value.trim().toUpperCase();
+  if (!roomId) { alert('ルームIDを入力してください'); return; }
+
+  playerName = name;
+  if (ws) { ws.close(); ws = null; }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws/room`);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'join', roomId, name }));
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleWsMessage(msg);
+  };
+
+  ws.onclose = () => {
+    // 突然切断
+    if (state && !state.gameOver) {
+      document.getElementById('waiting-overlay').classList.remove('show');
+      alert('接続が切れました');
+      backToStart();
+    }
+  };
+}
+
+function handleWsMessage(msg) {
+  switch (msg.type) {
+    case 'waiting':
+      myColor = msg.color;
+      document.getElementById('view-room').style.display = 'none';
+      document.getElementById('waiting-overlay').classList.add('show');
+      document.getElementById('waiting-title').textContent = '対戦相手を待機中…';
+      document.getElementById('waiting-msg').textContent = '相手が同じルームIDで入室するのを待っています';
+      document.getElementById('waiting-room-id').textContent = `ルームID: ${msg.roomId}`;
+      break;
+
+    case 'start':
+      myColor = msg.yourColor;
+      document.getElementById('waiting-overlay').classList.remove('show');
+
+      state = {
+        board: msg.board, currentPlayer: msg.currentPlayer,
+        gameOver: msg.gameOver, winner: msg.winner,
+        blackScore: msg.blackScore, whiteScore: msg.whiteScore,
+        validMoves: msg.validMoves, mode: 'VS_HUMAN'
+      };
+      prevBoard = null;
+
+      document.getElementById('black-name').textContent = msg.blackName + '（黒）';
+      document.getElementById('white-name').textContent = msg.whiteName + '（白）';
+      document.getElementById('view-start').style.display = 'none';
+      document.getElementById('view-room').style.display = 'none';
+      document.getElementById('view-play').style.display = 'flex';
+      render();
+      break;
+
+    case 'update':
+      if (!state) return;
+      const oldBoard = state.board.map(r => [...r]);
+      state = {
+        board: msg.board, currentPlayer: msg.currentPlayer,
+        gameOver: msg.gameOver, winner: msg.winner,
+        blackScore: msg.blackScore, whiteScore: msg.whiteScore,
+        validMoves: msg.validMoves, mode: 'VS_HUMAN'
+      };
+      const movedColor = msg.movedColor;
+      const pr = movedColor === 1 ? msg.row : -1;
+      const pc = movedColor === 1 ? msg.col : -1;
+      const ar = movedColor === 2 ? msg.row : -1;
+      const ac = movedColor === 2 ? msg.col : -1;
+      renderBoard(state.board, pr, pc, ar, ac, oldBoard);
+      updateScores();
+      updateTurnBanner(false);
+      if (state.gameOver) setTimeout(showResult, 600);
+      break;
+
+    case 'opponent_left':
+      alert('相手が退出しました');
+      backToStart();
+      break;
+
+    case 'error':
+      alert(msg.message);
+      break;
+  }
+}
+
+function leaveRoom() {
+  if (ws) { ws.send(JSON.stringify({type:'leave'})); ws.close(); ws = null; }
+  document.getElementById('waiting-overlay').classList.remove('show');
+  backToStart();
 }
 
 async function loadRanking() {
