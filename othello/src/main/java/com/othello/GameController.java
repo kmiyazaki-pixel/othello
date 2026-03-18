@@ -75,11 +75,7 @@ public class GameController {
         int row = body.get("row"), col = body.get("col");
 
         // 誰の手かを明示（VS_AIはBLACK固定、VS_HUMANはcurrentPlayer）
-        int movingPlayer = (game.getMode() == OthelloGame.Mode.VS_AI)
-                ? OthelloGame.BLACK
-                : game.getCurrentPlayer();
-
-        boolean moved = game.playerMove(row, col, movingPlayer);
+        boolean moved = game.playerMove(row, col);
         result.put("moved", moved);
 
         // AIの手番
