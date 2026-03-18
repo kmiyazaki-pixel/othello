@@ -95,18 +95,22 @@ public class GameController {
 
         result.putAll(buildState(game));
 
-        if (game.isGameOver() && game.getMode() == OthelloGame.Mode.VS_AI) {
-            String name = (String) session.getAttribute("playerName");
-            if (name == null) name = "Player";
-            saveRanking(name, game);
-        }
-
         return result;
     }
 
     @PostMapping("/name")
     public Map<String, Object> setName(@RequestBody Map<String, String> body, HttpSession session) {
         session.setAttribute("playerName", body.getOrDefault("name", "Player"));
+        return Map.of("ok", true);
+    }
+
+    @PostMapping("/ranking/submit")
+    public Map<String, Object> submitRanking(HttpSession session) {
+        OthelloGame game = getGame(session);
+        if (game == null || !game.isGameOver()) return Map.of("ok", false);
+        String name = (String) session.getAttribute("playerName");
+        if (name == null) name = "Player";
+        saveRanking(name, game);
         return Map.of("ok", true);
     }
 
