@@ -5,266 +5,503 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>オセロ</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    background: linear-gradient(135deg, #1a2a1a 0%, #0d1a0d 100%);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    color: #e8f5e9;
-    padding: 20px;
-  }
+:root {
+  --green-dark: #1b5e20;
+  --green-mid: #2e7d32;
+  --green-light: #388e3c;
+  --accent: #66bb6a;
+  --text: #e8f5e9;
+  --text-dim: #a5d6a7;
+  --bg: #0d1a0d;
+  --card-bg: rgba(255,255,255,0.06);
+}
 
-  h1 {
-    font-size: 2.2rem;
-    letter-spacing: 8px;
-    color: #a5d6a7;
-    margin-bottom: 20px;
-    text-shadow: 0 0 20px rgba(165,214,167,0.4);
-  }
+body {
+  background: radial-gradient(ellipse at top, #1a2e1a 0%, var(--bg) 70%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--text);
+  padding: 16px;
+  overflow-x: hidden;
+}
 
-  .scoreboard {
-    display: flex;
-    gap: 30px;
-    margin-bottom: 18px;
-    align-items: center;
-  }
+/* ===== TITLE ===== */
+.title {
+  font-size: 2rem;
+  letter-spacing: 10px;
+  color: var(--accent);
+  margin-bottom: 4px;
+  text-shadow: 0 0 30px rgba(102,187,106,0.5);
+}
 
-  .score-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 12px;
-    padding: 10px 22px;
-    border: 2px solid transparent;
-    transition: all 0.3s;
-  }
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  padding: 4px;
+}
+.tab {
+  padding: 7px 20px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+}
+.tab.active {
+  background: var(--green-mid);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
 
-  .score-card.active {
-    border-color: #66bb6a;
-    box-shadow: 0 0 15px rgba(102,187,106,0.3);
-  }
+/* ===== SCREENS ===== */
+.screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+.screen.active { display: flex; }
 
-  .score-disc {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
-  }
+/* ===== START SCREEN ===== */
+.start-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(102,187,106,0.2);
+  border-radius: 16px;
+  padding: 28px 32px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.start-card h2 { color: var(--accent); font-size: 1rem; margin-bottom: 4px; }
 
-  .score-disc.black { background: radial-gradient(circle at 35% 35%, #555, #000); }
-  .score-disc.white { background: radial-gradient(circle at 35% 35%, #fff, #bbb); }
+.name-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(102,187,106,0.3);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+}
+.name-input:focus { border-color: var(--accent); }
 
-  .score-label { font-size: 0.85rem; color: #a5d6a7; }
-  .score-num { font-size: 1.6rem; font-weight: bold; }
+.mode-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mode-btn {
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 2px solid rgba(102,187,106,0.2);
+  background: rgba(0,0,0,0.2);
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+.mode-btn .icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+.mode-btn.selected { border-color: var(--accent); background: rgba(102,187,106,0.15); color: var(--text); }
 
-  .status {
-    font-size: 1rem;
-    color: #c8e6c9;
-    margin-bottom: 14px;
-    height: 24px;
-    letter-spacing: 1px;
-  }
+.diff-select {
+  display: flex;
+  gap: 6px;
+}
+.diff-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 2px solid rgba(102,187,106,0.2);
+  background: rgba(0,0,0,0.2);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.diff-btn.selected { border-color: var(--accent); background: rgba(102,187,106,0.15); color: var(--text); }
+.diff-btn.easy.selected    { border-color: #81c784; background: rgba(129,199,132,0.15); }
+.diff-btn.normal.selected  { border-color: #ffb74d; background: rgba(255,183,77,0.12); }
+.diff-btn.hard.selected    { border-color: #ef5350; background: rgba(239,83,80,0.12); }
 
-  .board-wrap {
-    background: rgba(0,0,0,0.3);
-    border-radius: 16px;
-    padding: 14px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
-  }
+.start-btn {
+  padding: 14px;
+  background: linear-gradient(135deg, var(--green-mid), var(--green-light));
+  border: none;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+.start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
 
-  #board {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 3px;
-    background: #1b5e20;
-    border: 3px solid #2e7d32;
-    border-radius: 8px;
-    padding: 3px;
-  }
+/* ===== GAME SCREEN ===== */
+.scoreboard {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 8px 18px;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+.score-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(102,187,106,0.3);
+}
+.score-disc { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; }
+.score-disc.black { background: radial-gradient(circle at 35% 35%, #666, #111); box-shadow: inset 0 1px 3px rgba(255,255,255,0.2); }
+.score-disc.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); box-shadow: inset 0 1px 3px rgba(255,255,255,0.8); }
+.score-info { flex: 1; }
+.score-name { font-size: 0.7rem; color: var(--text-dim); }
+.score-num { font-size: 1.5rem; font-weight: bold; line-height: 1; }
 
-  .cell {
-    width: 56px; height: 56px;
-    background: #2e7d32;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    transition: background 0.15s;
-  }
+.vs-badge {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
 
-  .cell:hover { background: #388e3c; }
-  .cell.hint { background: #1b5e20; }
-  .cell.hint::after {
-    content: '';
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.18);
-    border: 2px dashed rgba(255,255,255,0.35);
-  }
+.status-bar {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  height: 22px;
+  letter-spacing: 0.5px;
+}
 
-  .disc {
-    width: 46px; height: 46px;
-    border-radius: 50%;
-    position: absolute;
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-    transform-style: preserve-3d;
-  }
+.board-wrap {
+  background: rgba(0,0,0,0.25);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
 
-  .disc.black {
-    background: radial-gradient(circle at 35% 30%, #666, #111);
-    box-shadow: 2px 3px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.15);
-  }
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  background: #174d1a;
+  border: 2px solid #2e7d32;
+  border-radius: 6px;
+  padding: 2px;
+}
 
-  .disc.white {
-    background: radial-gradient(circle at 35% 30%, #fff, #ccc);
-    box-shadow: 2px 3px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.8);
-  }
+.cell {
+  width: 54px; height: 54px;
+  background: var(--green-mid);
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+}
+.cell:hover { background: var(--green-light); }
+.cell.last-move { background: #33691e; }
+.cell.hint::after {
+  content: '';
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: 2px dashed rgba(255,255,255,0.3);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.5; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
 
-  .disc.flip { animation: flip 0.4s ease; }
+.disc {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  position: absolute;
+  transition: transform 0.08s;
+}
+.disc.black {
+  background: radial-gradient(circle at 35% 30%, #555, #111);
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.12);
+}
+.disc.white {
+  background: radial-gradient(circle at 35% 30%, #fff, #ccc);
+  box-shadow: 2px 3px 8px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,255,255,0.9);
+}
 
-  @keyframes flip {
-    0%   { transform: rotateY(0deg); }
-    50%  { transform: rotateY(90deg) scaleX(0.1); }
-    100% { transform: rotateY(0deg); }
-  }
+/* Flip animation */
+.disc.flip-to-black {
+  animation: flipToBlack 0.45s ease forwards;
+}
+.disc.flip-to-white {
+  animation: flipToWhite 0.45s ease forwards;
+}
+@keyframes flipToBlack {
+  0%   { transform: rotateY(0deg);   background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
+  49%  { transform: rotateY(90deg);  background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
+  50%  { transform: rotateY(90deg);  background: radial-gradient(circle at 35% 30%, #555, #111); }
+  100% { transform: rotateY(0deg);   background: radial-gradient(circle at 35% 30%, #555, #111); }
+}
+@keyframes flipToWhite {
+  0%   { transform: rotateY(0deg);  background: radial-gradient(circle at 35% 30%, #555, #111); }
+  49%  { transform: rotateY(90deg); background: radial-gradient(circle at 35% 30%, #555, #111); }
+  50%  { transform: rotateY(90deg); background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
+  100% { transform: rotateY(0deg);  background: radial-gradient(circle at 35% 30%, #fff, #ccc); }
+}
+.disc.place {
+  animation: placeDisc 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+}
+@keyframes placeDisc {
+  0%   { transform: scale(0) translateY(-8px); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
 
-  .disc.ai-placed { animation: place 0.3s ease; }
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.btn {
+  background: var(--green-mid);
+  color: var(--text);
+  border: 1px solid rgba(102,187,106,0.4);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--green-light); transform: translateY(-1px); }
+.btn.outline { background: transparent; color: var(--text-dim); }
+.btn.outline.on { background: rgba(102,187,106,0.15); color: var(--text); }
 
-  @keyframes place {
-    0%   { transform: scale(0) translateY(-10px); opacity: 0; }
-    70%  { transform: scale(1.15); }
-    100% { transform: scale(1); opacity: 1; }
-  }
+/* ===== RANKING SCREEN ===== */
+.ranking-wrap {
+  width: 100%;
+  max-width: 420px;
+}
+.ranking-title {
+  text-align: center;
+  color: var(--accent);
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  letter-spacing: 3px;
+}
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rank-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(102,187,106,0.2);
+}
+.rank-table td {
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.rank-num { color: var(--text-dim); font-size: 0.85rem; }
+.rank-num.gold   { color: #ffd700; font-weight: bold; }
+.rank-num.silver { color: #c0c0c0; font-weight: bold; }
+.rank-num.bronze { color: #cd7f32; font-weight: bold; }
+.diff-tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+}
+.diff-tag.EASY   { color: #81c784; }
+.diff-tag.NORMAL { color: #ffb74d; }
+.diff-tag.HARD   { color: #ef5350; }
+.empty-rank { text-align: center; color: var(--text-dim); padding: 40px; font-size: 0.9rem; }
 
-  .controls {
-    display: flex;
-    gap: 12px;
-    margin-top: 18px;
-    align-items: center;
-  }
+/* ===== RESULT OVERLAY ===== */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  align-items: center; justify-content: center;
+  z-index: 100;
+}
+.overlay.show { display: flex; }
+.dialog {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  border-radius: 20px;
+  padding: 36px 44px;
+  text-align: center;
+  border: 2px solid var(--accent);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.dialog-emoji { font-size: 3rem; margin-bottom: 8px; }
+.dialog h2 { font-size: 1.6rem; margin-bottom: 8px; color: var(--accent); }
+.dialog p  { color: #c8e6c9; margin-bottom: 20px; }
+.dialog-btns { display: flex; gap: 10px; justify-content: center; }
 
-  button {
-    background: #2e7d32;
-    color: #e8f5e9;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 24px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: all 0.2s;
-    border: 1px solid #43a047;
-  }
+/* ===== PASS NOTIFICATION ===== */
+.pass-notify {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,70,30,0.95);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.pass-notify.show { opacity: 1; }
 
-  button:hover { background: #388e3c; transform: translateY(-1px); }
-  button:active { transform: translateY(0); }
-
-  .hint-toggle {
-    background: transparent;
-    border-color: #558b2f;
-    color: #a5d6a7;
-  }
-
-  .hint-toggle.on { background: #33691e; border-color: #8bc34a; }
-
-  .overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-  }
-
-  .overlay.show { display: flex; }
-
-  .dialog {
-    background: linear-gradient(135deg, #1b5e20, #2e7d32);
-    border-radius: 20px;
-    padding: 40px 50px;
-    text-align: center;
-    border: 2px solid #66bb6a;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  @keyframes popIn {
-    from { transform: scale(0.5); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
-  }
-
-  .dialog h2 { font-size: 1.8rem; margin-bottom: 10px; color: #a5d6a7; }
-  .dialog p  { font-size: 1.1rem; margin-bottom: 24px; color: #c8e6c9; }
-
-  .coords {
-    display: flex;
-    gap: 3px;
-    justify-content: center;
-    margin-bottom: 4px;
-  }
-
-  .coord-label {
-    width: 56px; height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.65rem;
-    color: #4caf50;
-  }
-
-  @media (max-width: 520px) {
-    .cell { width: 40px; height: 40px; }
-    .disc { width: 33px; height: 33px; }
-    .coord-label { width: 40px; }
-    h1 { font-size: 1.5rem; }
-  }
+@media (max-width: 500px) {
+  .cell { width: 40px; height: 40px; }
+  .disc { width: 33px; height: 33px; }
+  .title { font-size: 1.5rem; }
+  .start-card { width: 100%; padding: 20px; }
+}
 </style>
 </head>
 <body>
 
-<h1>⚫ オセロ ⚪</h1>
+<div class="title">⚫ オセロ ⚪</div>
 
-<div class="scoreboard">
-  <div class="score-card" id="black-card">
-    <div class="score-disc black"></div>
-    <div>
-      <div class="score-label">あなた (黒)</div>
-      <div class="score-num" id="black-score">2</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('game')">🎮 ゲーム</button>
+  <button class="tab" onclick="switchTab('ranking')">🏆 ランキング</button>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div class="screen active" id="screen-game">
+
+  <!-- START -->
+  <div id="view-start">
+    <div class="start-card">
+      <div>
+        <h2>プレイヤー名</h2>
+        <input class="name-input" id="player-name" type="text" placeholder="名前を入力" maxlength="12" value="Player">
+      </div>
+
+      <div>
+        <h2>モード</h2>
+        <div class="mode-select">
+          <div class="mode-btn selected" id="mode-ai" onclick="selectMode('ai')">
+            <span class="icon">🤖</span>AI対戦
+          </div>
+          <div class="mode-btn" id="mode-2p" onclick="selectMode('2p')">
+            <span class="icon">👥</span>2人対戦
+          </div>
+        </div>
+      </div>
+
+      <div id="diff-section">
+        <h2>難易度</h2>
+        <div class="diff-select">
+          <button class="diff-btn easy" onclick="selectDiff('EASY')">😊 かんたん</button>
+          <button class="diff-btn normal selected" onclick="selectDiff('NORMAL')">😐 ふつう</button>
+          <button class="diff-btn hard" onclick="selectDiff('HARD')">😈 むずかしい</button>
+        </div>
+      </div>
+
+      <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
     </div>
   </div>
-  <div class="score-card" id="white-card">
-    <div class="score-disc white"></div>
-    <div>
-      <div class="score-label">AI (白)</div>
-      <div class="score-num" id="white-score">2</div>
+
+  <!-- PLAY -->
+  <div id="view-play" style="display:none; flex-direction:column; align-items:center;">
+    <div class="scoreboard">
+      <div class="score-card" id="black-card">
+        <div class="score-disc black"></div>
+        <div class="score-info">
+          <div class="score-name" id="black-name">あなた</div>
+          <div class="score-num" id="black-score">2</div>
+        </div>
+      </div>
+      <div class="vs-badge" id="vs-badge">VS AI</div>
+      <div class="score-card" id="white-card">
+        <div class="score-disc white"></div>
+        <div class="score-info">
+          <div class="score-name" id="white-name">AI</div>
+          <div class="score-num" id="white-score">2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="status">あなたの番です</div>
+
+    <div class="board-wrap">
+      <div id="board"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="backToStart()">🏠 メニュー</button>
+      <button class="btn" onclick="replayGame()">🔄 もう一度</button>
+      <button class="btn outline" id="hint-btn" onclick="toggleHints()">💡 ヒント: OFF</button>
     </div>
   </div>
 </div>
 
-<div class="status" id="status">あなたの番です</div>
-
-<div class="board-wrap">
-  <div class="coords" id="col-labels"></div>
-  <div id="board"></div>
+<!-- ===== RANKING SCREEN ===== -->
+<div class="screen" id="screen-ranking">
+  <div class="ranking-wrap">
+    <div class="ranking-title">🏆 RANKING TOP 10</div>
+    <table class="rank-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>名前</th>
+          <th>スコア</th>
+          <th>難易度</th>
+          <th>日時</th>
+        </tr>
+      </thead>
+      <tbody id="rank-body"></tbody>
+    </table>
+    <div id="rank-empty" class="empty-rank" style="display:none">
+      まだ記録がありません。<br>AI対戦に勝利すると登録されます！
+    </div>
+  </div>
 </div>
 
-<div class="controls">
-  <button onclick="newGame()">🔄 新しいゲーム</button>
-  <button class="hint-toggle" id="hint-btn" onclick="toggleHints()">💡 ヒント: OFF</button>
-</div>
+<!-- Pass notification -->
+<div class="pass-notify" id="pass-notify"></div>
 
+<!-- Result overlay -->
 <div class="overlay" id="overlay">
   <div class="dialog">
+    <div class="dialog-emoji" id="result-emoji"></div>
     <h2 id="result-title"></h2>
     <p id="result-msg"></p>
-    <button onclick="newGame()">もう一度</button>
+    <div class="dialog-btns">
+      <button class="btn" onclick="backToStart()">🏠 メニュー</button>
+      <button class="btn" onclick="replayGame()">🔄 もう一度</button>
+    </div>
   </div>
 </div>
 
@@ -273,25 +510,99 @@ const BLACK = 1, WHITE = 2;
 let state = null;
 let showHints = false;
 let thinking = false;
+let lastBoard = null;
+let selectedMode = 'ai';
+let selectedDiff = 'NORMAL';
+let currentGameConfig = {};
 
-async function fetchState() {
-  const res = await fetch('/api/state');
+// ===== TAB =====
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'ranking') loadRanking();
+}
+
+// ===== START SCREEN =====
+function selectMode(mode) {
+  selectedMode = mode;
+  document.getElementById('mode-ai').classList.toggle('selected', mode === 'ai');
+  document.getElementById('mode-2p').classList.toggle('selected', mode === '2p');
+  document.getElementById('diff-section').style.display = mode === 'ai' ? '' : 'none';
+}
+
+function selectDiff(diff) {
+  selectedDiff = diff;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+  const map = { EASY: 'easy', NORMAL: 'normal', HARD: 'hard' };
+  document.querySelector('.diff-btn.' + map[diff]).classList.add('selected');
+}
+
+async function startGame() {
+  const name = document.getElementById('player-name').value.trim() || 'Player';
+  await fetch('/api/name', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+
+  currentGameConfig = {
+    mode: selectedMode === '2p' ? 'vs_human' : 'vs_ai',
+    difficulty: selectedDiff,
+    playerName: name
+  };
+
+  const res = await fetch('/api/new', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(currentGameConfig)
+  });
   state = await res.json();
+  lastBoard = null;
+
+  // Update names
+  document.getElementById('black-name').textContent = name + ' (黒)';
+  if (selectedMode === '2p') {
+    document.getElementById('white-name').textContent = 'Player2 (白)';
+    document.getElementById('vs-badge').textContent = '2P';
+  } else {
+    document.getElementById('white-name').textContent = 'AI (白)';
+    document.getElementById('vs-badge').textContent =
+      { EASY:'かんたん', NORMAL:'ふつう', HARD:'むずかしい' }[selectedDiff];
+  }
+
+  document.getElementById('view-start').style.display = 'none';
+  document.getElementById('view-play').style.display = 'flex';
   render();
 }
 
-async function newGame() {
+function backToStart() {
   document.getElementById('overlay').classList.remove('show');
-  thinking = false;
-  const res = await fetch('/api/new', { method: 'POST' });
+  document.getElementById('view-play').style.display = 'none';
+  document.getElementById('view-start').style.display = '';
+  state = null; lastBoard = null; thinking = false;
+}
+
+async function replayGame() {
+  document.getElementById('overlay').classList.remove('show');
+  const res = await fetch('/api/new', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(currentGameConfig)
+  });
   state = await res.json();
+  lastBoard = null; thinking = false;
   render();
 }
 
+// ===== GAME =====
 async function makeMove(row, col) {
-  if (thinking || !state || state.gameOver || state.currentPlayer !== BLACK) return;
+  if (thinking || !state || state.gameOver) return;
+  if (!state.validMoves.some(m => m[0] === row && m[1] === col)) return;
   thinking = true;
-  setStatus('AIが考え中…');
+
+  const prevBoard = state.board.map(r => [...r]);
 
   const res = await fetch('/api/move', {
     method: 'POST',
@@ -299,61 +610,61 @@ async function makeMove(row, col) {
     body: JSON.stringify({ row, col })
   });
   const data = await res.json();
+  if (!data.moved) { thinking = false; return; }
 
-  if (!data.moved) {
-    thinking = false;
-    setStatus('そこには置けません');
-    setTimeout(() => render(), 800);
-    return;
-  }
-
+  animateFlips(prevBoard, data.board, row, col, data.aiRow, data.aiCol);
   state = data;
-  render();
-
-  if (data.aiRow >= 0) {
-    const aiCell = document.querySelector(`[data-r="${data.aiRow}"][data-c="${data.aiCol}"]`);
-    if (aiCell) {
-      const disc = aiCell.querySelector('.disc');
-      if (disc) disc.classList.add('ai-placed');
-    }
-  }
-
   thinking = false;
 
-  if (state.gameOver) showResult();
-  else render();
+  if (state.gameOver) {
+    setTimeout(showResult, 600);
+  }
+}
+
+function animateFlips(prev, next, placedRow, placedCol, aiRow, aiCol) {
+  renderBoard(next, placedRow, placedCol, aiRow, aiCol, prev);
+  updateScores();
+  updateStatus();
 }
 
 function render() {
   if (!state) return;
+  renderBoard(state.board, -1, -1, -1, -1, lastBoard);
+  lastBoard = state.board.map(r => [...r]);
   updateScores();
-  renderBoard();
-  if (!state.gameOver) {
-    const player = state.currentPlayer;
-    setStatus(player === BLACK ? 'あなたの番です (黒)' : 'AIの番 (白)');
-    updateActiveCard(player);
-  }
+  updateStatus();
 }
 
-function renderBoard() {
+function renderBoard(board, placedRow, placedCol, aiRow, aiCol, prevBoard) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
 
-  const validSet = new Set();
-  if (state.validMoves && state.currentPlayer === BLACK) {
-    state.validMoves.forEach(m => validSet.add(`${m[0]},${m[1]}`));
-  }
+  const validSet = new Set(
+    (state.validMoves || []).map(m => `${m[0]},${m[1]}`)
+  );
 
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const cell = document.createElement('div');
       cell.className = 'cell';
-      cell.dataset.r = r; cell.dataset.c = c;
 
-      const val = state.board[r][c];
-      if (val === BLACK || val === WHITE) {
+      if ((r === placedRow && c === placedCol) || (r === aiRow && c === aiCol)) {
+        cell.classList.add('last-move');
+      }
+
+      const val = board[r][c];
+      if (val !== 0) {
         const disc = document.createElement('div');
-        disc.className = 'disc ' + (val === BLACK ? 'black' : 'white');
+        const colorClass = val === BLACK ? 'black' : 'white';
+        disc.className = 'disc ' + colorClass;
+
+        if (r === placedRow && c === placedCol) {
+          disc.classList.add('place');
+        } else if (r === aiRow && c === aiCol) {
+          disc.classList.add('place');
+        } else if (prevBoard && prevBoard[r][c] !== 0 && prevBoard[r][c] !== val) {
+          disc.classList.add(val === BLACK ? 'flip-to-black' : 'flip-to-white');
+        }
         cell.appendChild(disc);
       } else if (showHints && validSet.has(`${r},${c}`)) {
         cell.classList.add('hint');
@@ -363,16 +674,28 @@ function renderBoard() {
       boardEl.appendChild(cell);
     }
   }
+  lastBoard = board.map(row => [...row]);
 }
 
 function updateScores() {
+  if (!state) return;
   document.getElementById('black-score').textContent = state.blackScore;
   document.getElementById('white-score').textContent = state.whiteScore;
-}
-
-function updateActiveCard(player) {
+  const player = state.currentPlayer;
   document.getElementById('black-card').classList.toggle('active', player === BLACK);
   document.getElementById('white-card').classList.toggle('active', player === WHITE);
+}
+
+function updateStatus() {
+  if (!state || state.gameOver) return;
+  const isVsAI = state.mode === 'VS_AI';
+  if (state.currentPlayer === BLACK) {
+    setStatus('⚫ あなたの番です');
+  } else if (isVsAI) {
+    setStatus('🤖 AIが考え中…');
+  } else {
+    setStatus('⚪ 白の番です');
+  }
 }
 
 function setStatus(msg) {
@@ -389,23 +712,53 @@ function toggleHints() {
 
 function showResult() {
   const w = state.winner;
-  const title = w === 'draw' ? '引き分け！' : w === 'black' ? 'あなたの勝ち！🎉' : 'AIの勝ち！🤖';
-  const msg = `最終スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
+  const isVsAI = state.mode === 'VS_AI';
+  let emoji, title;
+  if (w === 'draw') {
+    emoji = '🤝'; title = '引き分け！';
+  } else if (w === 'black') {
+    emoji = isVsAI ? '🎉' : '⚫'; title = isVsAI ? 'あなたの勝ち！' : '黒の勝ち！';
+  } else {
+    emoji = isVsAI ? '🤖' : '⚪'; title = isVsAI ? 'AIの勝ち…' : '白の勝ち！';
+  }
+  document.getElementById('result-emoji').textContent = emoji;
   document.getElementById('result-title').textContent = title;
-  document.getElementById('result-msg').textContent = msg;
+  document.getElementById('result-msg').textContent =
+    `最終スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
   document.getElementById('overlay').classList.add('show');
 }
 
-// Column labels
-const labels = document.getElementById('col-labels');
-['', 'A','B','C','D','E','F','G','H'].forEach(l => {
-  const d = document.createElement('div');
-  d.className = 'coord-label';
-  d.textContent = l;
-  labels.appendChild(d);
-});
+// ===== RANKING =====
+async function loadRanking() {
+  const res = await fetch('/api/ranking');
+  const data = await res.json();
+  const tbody = document.getElementById('rank-body');
+  const empty = document.getElementById('rank-empty');
+  tbody.innerHTML = '';
 
-fetchState();
+  if (!data.ranking || data.ranking.length === 0) {
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const medals = ['gold', 'silver', 'bronze'];
+  data.ranking.forEach((entry, i) => {
+    const tr = document.createElement('tr');
+    const rankClass = medals[i] || '';
+    tr.innerHTML = `
+      <td><span class="rank-num ${rankClass}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}</span></td>
+      <td>${entry.name}</td>
+      <td><strong>${entry.score}</strong></td>
+      <td><span class="diff-tag ${entry.difficulty}">${{EASY:'かんたん',NORMAL:'ふつう',HARD:'むずかしい'}[entry.difficulty]}</span></td>
+      <td style="font-size:0.75rem;color:var(--text-dim)">${entry.date}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Init
+fetch('/api/state').then(r => r.json()).then(s => { state = s; });
 </script>
 </body>
 </html>
