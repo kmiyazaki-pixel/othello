@@ -6,37 +6,42 @@ import java.util.List;
 public class OthelloGame {
 
     public static final int EMPTY = 0;
-    public static final int BLACK = 1; // Player
-    public static final int WHITE = 2; // AI
+    public static final int BLACK = 1;
+    public static final int WHITE = 2;
+
+    public enum Difficulty { EASY, NORMAL, HARD }
+    public enum Mode { VS_AI, VS_HUMAN }
 
     private int[][] board;
     private int currentPlayer;
     private boolean gameOver;
     private String winner;
+    private Difficulty difficulty;
+    private Mode mode;
 
     private static final int[][] DIRECTIONS = {
-        {-1, -1}, {-1, 0}, {-1, 1},
-        { 0, -1},           { 0, 1},
-        { 1, -1}, { 1, 0}, { 1, 1}
+        {-1,-1},{-1,0},{-1,1},
+        { 0,-1},        { 0,1},
+        { 1,-1},{ 1,0},{ 1,1}
     };
 
     private static final int[][] WEIGHTS = {
-        {100, -20, 10,  5,  5, 10, -20, 100},
-        {-20, -50, -2, -2, -2, -2, -50, -20},
-        { 10,  -2,  3,  1,  1,  3,  -2,  10},
-        {  5,  -2,  1,  0,  0,  1,  -2,   5},
-        {  5,  -2,  1,  0,  0,  1,  -2,   5},
-        { 10,  -2,  3,  1,  1,  3,  -2,  10},
-        {-20, -50, -2, -2, -2, -2, -50, -20},
-        {100, -20, 10,  5,  5, 10, -20, 100}
+        {100,-20, 10,  5,  5, 10,-20,100},
+        {-20,-50, -2, -2, -2, -2,-50,-20},
+        { 10, -2,  3,  1,  1,  3, -2, 10},
+        {  5, -2,  1,  0,  0,  1, -2,  5},
+        {  5, -2,  1,  0,  0,  1, -2,  5},
+        { 10, -2,  3,  1,  1,  3, -2, 10},
+        {-20,-50, -2, -2, -2, -2,-50,-20},
+        {100,-20, 10,  5,  5, 10,-20,100}
     };
 
-    public OthelloGame() {
+    public OthelloGame(Difficulty difficulty, Mode mode) {
+        this.difficulty = difficulty;
+        this.mode = mode;
         board = new int[8][8];
-        board[3][3] = WHITE;
-        board[3][4] = BLACK;
-        board[4][3] = BLACK;
-        board[4][4] = WHITE;
+        board[3][3] = WHITE; board[3][4] = BLACK;
+        board[4][3] = BLACK; board[4][4] = WHITE;
         currentPlayer = BLACK;
         gameOver = false;
         winner = null;
@@ -44,30 +49,24 @@ public class OthelloGame {
 
     public int[][] getBoard() {
         int[][] copy = new int[8][8];
-        for (int i = 0; i < 8; i++)
-            System.arraycopy(board[i], 0, copy[i], 0, 8);
+        for (int i = 0; i < 8; i++) System.arraycopy(board[i], 0, copy[i], 0, 8);
         return copy;
     }
 
     public int getCurrentPlayer() { return currentPlayer; }
     public boolean isGameOver() { return gameOver; }
     public String getWinner() { return winner; }
+    public Difficulty getDifficulty() { return difficulty; }
+    public Mode getMode() { return mode; }
 
     public int getScore(int player) {
         int count = 0;
-        for (int[] row : board)
-            for (int cell : row)
-                if (cell == player) count++;
+        for (int[] row : board) for (int cell : row) if (cell == player) count++;
         return count;
     }
 
     public List<int[]> getValidMoves(int player) {
-        List<int[]> moves = new ArrayList<>();
-        for (int r = 0; r < 8; r++)
-            for (int c = 0; c < 8; c++)
-                if (isValidMove(board, r, c, player))
-                    moves.add(new int[]{r, c});
-        return moves;
+        return getValidMovesOnBoard(player, board);
     }
 
     private boolean isValidMove(int[][] b, int row, int col, int player) {
@@ -87,21 +86,36 @@ public class OthelloGame {
     }
 
     public boolean playerMove(int row, int col) {
-        if (gameOver || currentPlayer != BLACK) return false;
-        if (!isValidMove(board, row, col, BLACK)) return false;
-        applyMove(board, row, col, BLACK);
+        if (gameOver) return false;
+        if (!isValidMove(board, row, col, currentPlayer)) return false;
+        applyMove(board, row, col, currentPlayer);
         advanceTurn();
         return true;
     }
 
     public int[] aiMove() {
-        if (gameOver || currentPlayer != WHITE) return null;
+        if (gameOver || mode == Mode.VS_HUMAN || currentPlayer != WHITE) return null;
         List<int[]> moves = getValidMoves(WHITE);
-        if (moves.isEmpty()) {
-            advanceTurn();
-            return null;
+        if (moves.isEmpty()) { advanceTurn(); return null; }
+
+        int depth = switch (difficulty) {
+            case EASY   -> 1;
+            case NORMAL -> 3;
+            case HARD   -> 6;
+        };
+
+        int[] best;
+        if (difficulty == Difficulty.EASY) {
+            // Random move for easy
+            best = new int[]{0, moves.get((int)(Math.random() * moves.size()))[0],
+                                moves.get((int)(Math.random() * moves.size()))[1]};
+            // pick one random move properly
+            int[] picked = moves.get((int)(Math.random() * moves.size()));
+            best = new int[]{0, picked[0], picked[1]};
+        } else {
+            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         }
-        int[] best = minimax(board, 5, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+
         int row = best[1], col = best[2];
         applyMove(board, row, col, WHITE);
         advanceTurn();
@@ -129,7 +143,7 @@ public class OthelloGame {
         if (!getValidMovesOnBoard(next, board).isEmpty()) {
             currentPlayer = next;
         } else if (!getValidMovesOnBoard(currentPlayer, board).isEmpty()) {
-            // skip
+            // pass
         } else {
             gameOver = true;
             int black = getScore(BLACK), white = getScore(WHITE);
@@ -147,14 +161,10 @@ public class OthelloGame {
         return moves;
     }
 
-    // Minimax returns [score, row, col]
     private int[] minimax(int[][] b, int depth, int alpha, int beta, boolean maximizing) {
         int player = maximizing ? WHITE : BLACK;
         List<int[]> moves = getValidMovesOnBoard(player, b);
-
-        if (depth == 0 || moves.isEmpty()) {
-            return new int[]{evaluate(b), -1, -1};
-        }
+        if (depth == 0 || moves.isEmpty()) return new int[]{evaluate(b), -1, -1};
 
         int bestScore = maximizing ? Integer.MIN_VALUE : Integer.MAX_VALUE;
         int bestRow = moves.get(0)[0], bestCol = moves.get(0)[1];
