@@ -19,23 +19,19 @@ public class GameController {
 
     @PostConstruct
     public void initDb() {
-        // lazy-initialization でも確実に実行されるようスレッドで実行
-        new Thread(() -> {
-            try {
-                Thread.sleep(3000); // アプリ起動完了を待つ
-                jdbc.execute(
-                    "CREATE TABLE IF NOT EXISTS ranking (" +
-                    "id SERIAL PRIMARY KEY, " +
-                    "name VARCHAR(50) NOT NULL, " +
-                    "score INTEGER NOT NULL, " +
-                    "difficulty VARCHAR(10) NOT NULL, " +
-                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-                );
-                System.out.println("rankingテーブル準備完了");
-            } catch (Exception e) {
-                System.err.println("テーブル作成失敗: " + e.getMessage());
-            }
-        }).start();
+        try {
+            jdbc.execute(
+                "CREATE TABLE IF NOT EXISTS ranking (" +
+                "id SERIAL PRIMARY KEY, " +
+                "name VARCHAR(50) NOT NULL, " +
+                "score INTEGER NOT NULL, " +
+                "difficulty VARCHAR(10) NOT NULL, " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            );
+            System.out.println("=== rankingテーブル準備完了 ===");
+        } catch (Exception e) {
+            System.err.println("=== テーブル作成失敗: " + e.getMessage() + " ===");
+        }
     }
 
     private OthelloGame getGame(HttpSession session) {
