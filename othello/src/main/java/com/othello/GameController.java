@@ -1,5 +1,6 @@
 package com.othello;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,23 @@ public class GameController {
 
     public GameController(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
+    }
+
+    @PostConstruct
+    public void initDb() {
+        try {
+            jdbc.execute(
+                "CREATE TABLE IF NOT EXISTS ranking (" +
+                "id SERIAL PRIMARY KEY, " +
+                "name VARCHAR(50) NOT NULL, " +
+                "score INTEGER NOT NULL, " +
+                "difficulty VARCHAR(10) NOT NULL, " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            );
+            System.out.println("=== rankingテーブル準備完了 ===");
+        } catch (Exception e) {
+            System.err.println("=== テーブル作成失敗: " + e.getMessage() + " ===");
+        }
     }
 
     private OthelloGame getGame(HttpSession session) {
@@ -37,9 +55,8 @@ public class GameController {
 
         OthelloGame.Difficulty diff = OthelloGame.Difficulty.NORMAL;
         OthelloGame.Mode mode = OthelloGame.Mode.VS_AI;
-
-        Map<String, Object> result = null;
         boolean playerIsWhite = false;
+
         if (body != null) {
             if (body.containsKey("difficulty"))
                 diff = OthelloGame.Difficulty.valueOf(body.get("difficulty").toUpperCase());
@@ -52,24 +69,24 @@ public class GameController {
         OthelloGame game = new OthelloGame(diff, mode, playerIsWhite);
         session.setAttribute("game", game);
 
+        Map<String, Object> state = buildState(game);
+
         // 後攻（プレイヤーが白）の場合、AIが先に打つ
         if (playerIsWhite && mode == OthelloGame.Mode.VS_AI) {
-            result = new HashMap<>();
-            result.put("boardAfterPlayer", game.getBoard());
             List<int[]> aiMoves = new ArrayList<>();
             while (!game.isGameOver() && game.getCurrentPlayer() == OthelloGame.BLACK) {
-                int[] aiPos = game.aiMoveAsBlack();
+                int[] aiPos = game.aiMove();
                 if (aiPos != null) aiMoves.add(aiPos);
             }
             if (!aiMoves.isEmpty()) {
                 int[] lastAI = aiMoves.get(aiMoves.size() - 1);
-                result.put("aiRow", lastAI[0]);
-                result.put("aiCol", lastAI[1]);
+                state.put("aiRow", lastAI[0]);
+                state.put("aiCol", lastAI[1]);
             }
+            // AIが打った後の盤面で state を再構築
+            state.putAll(buildState(game));
         }
 
-        Map<String, Object> state = buildState(game);
-        if (result != null) state.putAll(result);
         return state;
     }
 
@@ -79,24 +96,19 @@ public class GameController {
         Map<String, Object> result = new HashMap<>();
         int row = body.get("row"), col = body.get("col");
 
-        // 誰の手かを明示（VS_AIはBLACK固定、VS_HUMANはcurrentPlayer）
         boolean moved = game.playerMove(row, col);
         result.put("moved", moved);
 
-        // AIの手番（黒がパスし続ける限りAIが連続で打つ）
         if (moved && game.getMode() == OthelloGame.Mode.VS_AI) {
-            // AIが置く前の盤面を保存
             result.put("boardAfterPlayer", game.getBoard());
 
             List<int[]> aiMoves = new ArrayList<>();
-            int aiColor = game.isPlayerWhite() ? OthelloGame.BLACK : OthelloGame.WHITE;
-            while (!game.isGameOver() && game.getCurrentPlayer() == aiColor) {
-                int[] aiPos = game.isPlayerWhite() ? game.aiMoveAsBlack() : game.aiMove();
+            while (!game.isGameOver() && game.getCurrentPlayer() != game.getPlayerColor()) {
+                int[] aiPos = game.aiMove();
                 if (aiPos != null) aiMoves.add(aiPos);
             }
 
             if (!aiMoves.isEmpty()) {
-                // 最後のAIの手だけフロントに返す（アニメ用）
                 int[] lastAI = aiMoves.get(aiMoves.size() - 1);
                 result.put("aiRow", lastAI[0]);
                 result.put("aiCol", lastAI[1]);
@@ -107,7 +119,6 @@ public class GameController {
         }
 
         result.putAll(buildState(game));
-
         return result;
     }
 
@@ -121,10 +132,6 @@ public class GameController {
     public Map<String, Object> submitRanking(
             @RequestBody(required = false) Map<String, String> body,
             HttpSession session) {
-        // まずセッションからゲームを試みる
-        OthelloGame game = getGame(session);
-
-        // フロントから直接データを受け取る（セッション切れ対策）
         if (body != null && body.containsKey("score") && body.containsKey("difficulty")) {
             String name = body.getOrDefault("name", "Player");
             int score = Integer.parseInt(body.get("score"));
@@ -141,8 +148,7 @@ public class GameController {
                 return Map.of("ok", false, "error", e.getMessage());
             }
         }
-
-        // フォールバック: セッションから取得
+        OthelloGame game = getGame(session);
         if (game == null || !game.isGameOver()) return Map.of("ok", false, "reason", "game not over");
         String name = (String) session.getAttribute("playerName");
         if (name == null) name = "Player";
@@ -150,38 +156,55 @@ public class GameController {
         return Map.of("ok", true);
     }
 
+    @GetMapping("/ranking")
+    public Map<String, Object> getRanking() {
+        try {
+            List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT name, score, difficulty, " +
+                "TO_CHAR(created_at, 'MM/DD') AS date " +
+                "FROM ranking ORDER BY difficulty, score DESC"
+            );
+            return Map.of("ranking", rows);
+        } catch (Exception e) {
+            return Map.of("ranking", List.of());
+        }
+    }
+
+    @DeleteMapping("/ranking")
+    public Map<String, Object> clearRanking() {
+        jdbc.execute("DELETE FROM ranking");
+        return Map.of("ok", true);
+    }
+
+    private void saveRanking(String name, OthelloGame game) {
+        // プレイヤーが勝った場合のみ登録
+        String playerWinner = game.isPlayerWhite() ? "white" : "black";
+        if (!playerWinner.equals(game.getWinner())) return;
+        try {
+            int playerScore = game.getScore(game.getPlayerColor());
+            jdbc.update(
+                "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
+                name, playerScore, game.getDifficulty().name()
+            );
+        } catch (Exception e) {
+            System.err.println("ランキング保存失敗: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/debug")
     public Map<String, Object> debug() {
         Map<String, Object> result = new HashMap<>();
-
-        // 設定値を確認
-        try {
-            javax.sql.DataSource ds = jdbc.getDataSource();
-            if (ds instanceof com.zaxxer.hikari.HikariDataSource) {
-                com.zaxxer.hikari.HikariDataSource hds = (com.zaxxer.hikari.HikariDataSource) ds;
-                result.put("jdbc_url", hds.getJdbcUrl());
-                result.put("username", hds.getUsername());
-            }
-        } catch (Exception e) {
-            result.put("datasource_info_error", e.getMessage());
-        }
-
         try {
             jdbc.queryForObject("SELECT 1", Integer.class);
             result.put("db", "connected");
         } catch (Exception e) {
             result.put("db", "FAILED: " + e.getMessage());
-            // 根本原因を取得
-            Throwable cause = e.getCause();
-            if (cause != null) result.put("cause", cause.getMessage());
-            Throwable root = cause != null ? cause.getCause() : null;
-            if (root != null) result.put("root_cause", root.getMessage());
         }
         try {
             Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ranking", Integer.class);
             result.put("ranking_rows", count);
         } catch (Exception e) {
-            result.put("ranking_table", "MISSING: " + e.getMessage());
+            result.put("ranking_table", "MISSING");
             try {
                 jdbc.execute(
                     "CREATE TABLE IF NOT EXISTS ranking (" +
@@ -198,39 +221,6 @@ public class GameController {
         return result;
     }
 
-    @GetMapping("/ranking")
-    public Map<String, Object> getRanking() {
-        try {
-            // 全難易度のTOP10をまとめて返す（フロントで難易度別に表示）
-            List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT name, score, difficulty, " +
-                "TO_CHAR(created_at, 'MM/DD HH24:MI') AS date " +
-                "FROM ranking ORDER BY difficulty, score DESC"
-            );
-            return Map.of("ranking", rows);
-        } catch (Exception e) {
-            return Map.of("ranking", List.of());
-        }
-    }
-
-    @DeleteMapping("/ranking")
-    public Map<String, Object> clearRanking() {
-        jdbc.execute("DELETE FROM ranking");
-        return Map.of("ok", true);
-    }
-
-    private void saveRanking(String name, OthelloGame game) {
-        if (!"black".equals(game.getWinner())) return;
-        try {
-            jdbc.update(
-                "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
-                name, game.getScore(OthelloGame.BLACK), game.getDifficulty().name()
-            );
-        } catch (Exception e) {
-            System.err.println("ランキング保存失敗: " + e.getMessage());
-        }
-    }
-
     private Map<String, Object> buildState(OthelloGame game) {
         Map<String, Object> state = new HashMap<>();
         state.put("board", game.getBoard());
@@ -241,10 +231,11 @@ public class GameController {
         state.put("whiteScore", game.getScore(OthelloGame.WHITE));
         state.put("difficulty", game.getDifficulty().name());
         state.put("mode", game.getMode().name());
+        state.put("playerColor", game.getPlayerColor());
 
-        // validMoves: プレイヤーの番のときだけ返す（AIの番中は空）
+        // validMoves: プレイヤーの番のときだけ返す
         boolean isPlayerTurn = game.getMode() == OthelloGame.Mode.VS_HUMAN
-                || game.getCurrentPlayer() == OthelloGame.BLACK;
+                || game.getCurrentPlayer() == game.getPlayerColor();
         if (!game.isGameOver() && isPlayerTurn) {
             state.put("validMoves", game.getValidMoves(game.getCurrentPlayer()));
         } else {
