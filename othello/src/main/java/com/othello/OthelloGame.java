@@ -18,7 +18,11 @@ public class OthelloGame {
     private String winner;
     private Difficulty difficulty;
     private Mode mode;
-    private boolean playerIsWhite; // trueならプレイヤーが白、AIが黒
+    private boolean playerIsWhite;
+
+    // AIの色（playerIsWhiteならAI=BLACK、そうでなければAI=WHITE）
+    private int aiColor;
+    private int playerColor;
 
     private static final int[][] DIRECTIONS = {
         {-1,-1},{-1,0},{-1,1},
@@ -45,6 +49,8 @@ public class OthelloGame {
         this.difficulty = difficulty;
         this.mode = mode;
         this.playerIsWhite = playerIsWhite;
+        this.playerColor = playerIsWhite ? WHITE : BLACK;
+        this.aiColor     = playerIsWhite ? BLACK : WHITE;
         board = new int[8][8];
         board[3][3] = WHITE; board[3][4] = BLACK;
         board[4][3] = BLACK; board[4][4] = WHITE;
@@ -59,12 +65,13 @@ public class OthelloGame {
         return copy;
     }
 
-    public int getCurrentPlayer() { return currentPlayer; }
-    public boolean isGameOver() { return gameOver; }
-    public String getWinner() { return winner; }
-    public Difficulty getDifficulty() { return difficulty; }
-    public Mode getMode() { return mode; }
-    public boolean isPlayerWhite() { return playerIsWhite; }
+    public int getCurrentPlayer()    { return currentPlayer; }
+    public boolean isGameOver()      { return gameOver; }
+    public String getWinner()        { return winner; }
+    public Difficulty getDifficulty(){ return difficulty; }
+    public Mode getMode()            { return mode; }
+    public boolean isPlayerWhite()   { return playerIsWhite; }
+    public int getPlayerColor()      { return playerColor; }
 
     public int getScore(int player) {
         int count = 0;
@@ -92,40 +99,12 @@ public class OthelloGame {
         return false;
     }
 
-    // player を明示的に受け取る（currentPlayerに依存しない）
     public boolean playerMove(int row, int col) {
-        int playerColor = playerIsWhite ? WHITE : BLACK;
         if (gameOver || currentPlayer != playerColor) return false;
         if (!isValidMove(board, row, col, playerColor)) return false;
         applyMove(board, row, col, playerColor);
         advanceTurn();
         return true;
-    }
-
-    // 2人対戦用：currentPlayerに関わらず任意プレイヤーが置ける
-    // 後攻選択時にAI（黒）が最初に打つ用
-    public int[] aiMoveAsBlack() {
-        if (gameOver || currentPlayer != BLACK) return null;
-        List<int[]> moves = getValidMoves(BLACK);
-        if (moves.isEmpty()) { advanceTurn(); return null; }
-        int[] best;
-        if (difficulty == Difficulty.EASY) {
-            int[] picked = moves.get((int)(Math.random() * moves.size()));
-            best = new int[]{0, picked[0], picked[1]};
-        } else if (difficulty == Difficulty.EXPERT) {
-            best = iterativeDeepening(board, 2000);
-        } else {
-            int depth = switch (difficulty) {
-                case NORMAL -> 4;
-                case HARD   -> 7;
-                default     -> 4;
-            };
-            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
-        }
-        int row = best[1], col = best[2];
-        applyMove(board, row, col, BLACK);
-        advanceTurn();
-        return new int[]{row, col};
     }
 
     public boolean playerMoveAs(int row, int col, int player) {
@@ -137,7 +116,6 @@ public class OthelloGame {
     }
 
     public int[] aiMove() {
-        int aiColor = playerIsWhite ? BLACK : WHITE;
         if (gameOver || mode == Mode.VS_HUMAN || currentPlayer != aiColor) return null;
         List<int[]> moves = getValidMoves(aiColor);
         if (moves.isEmpty()) { advanceTurn(); return null; }
@@ -154,7 +132,9 @@ public class OthelloGame {
                 case HARD   -> 7;
                 default     -> 4;
             };
-            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+            // AIが最大化するか最小化するか（AIがBLACKなら最小化側）
+            boolean maximizing = (aiColor == WHITE);
+            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
         }
 
         int row = best[1], col = best[2];
@@ -184,7 +164,7 @@ public class OthelloGame {
         if (!getValidMovesOnBoard(next, board).isEmpty()) {
             currentPlayer = next;
         } else if (!getValidMovesOnBoard(currentPlayer, board).isEmpty()) {
-            // パス（currentPlayerはそのまま）
+            // パス
         } else {
             gameOver = true;
             int black = getScore(BLACK), white = getScore(WHITE);
@@ -202,31 +182,26 @@ public class OthelloGame {
         return moves;
     }
 
-    private long timeLimitMs;
+    private long timeLimitEnd;
     private boolean timeUp;
 
     private int[] iterativeDeepening(int[][] b, long timeLimitMs) {
-        this.timeLimitMs = System.currentTimeMillis() + timeLimitMs;
+        this.timeLimitEnd = System.currentTimeMillis() + timeLimitMs;
         this.timeUp = false;
-        int[] best = new int[]{0, -1, -1};
-        List<int[]> moves = getValidMovesOnBoard(WHITE, b);
-        if (!moves.isEmpty()) {
-            best[1] = moves.get(0)[0];
-            best[2] = moves.get(0)[1];
-        }
+        List<int[]> moves = getValidMovesOnBoard(aiColor, b);
+        int[] best = new int[]{0, moves.isEmpty() ? -1 : moves.get(0)[0], moves.isEmpty() ? -1 : moves.get(0)[1]};
+        boolean maximizing = (aiColor == WHITE);
         for (int depth = 1; depth <= 12; depth++) {
-            if (System.currentTimeMillis() >= this.timeLimitMs) break;
-            int[] result = minimax(b, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
-            if (!timeUp && result[1] >= 0) {
-                best = result;
-            }
+            if (System.currentTimeMillis() >= timeLimitEnd) break;
+            int[] result = minimax(b, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
+            if (!timeUp && result[1] >= 0) best = result;
             if (timeUp) break;
         }
         return best;
     }
 
     private int[] minimax(int[][] b, int depth, int alpha, int beta, boolean maximizing) {
-        if (timeUp || System.currentTimeMillis() >= timeLimitMs) {
+        if (timeUp || System.currentTimeMillis() >= timeLimitEnd) {
             timeUp = true;
             return new int[]{evaluate(b), -1, -1};
         }
@@ -253,11 +228,11 @@ public class OthelloGame {
         return new int[]{bestScore, bestRow, bestCol};
     }
 
+    // evaluate: WHITE有利→正、BLACK有利→負（AIがWHITEのときはそのまま、BLACKのときは符号逆）
     private int evaluate(int[][] b) {
         int total = 0;
         for (int[] row : b) for (int v : row) if (v != EMPTY) total++;
 
-        // ===== 位置評価 =====
         int posScore = 0;
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++) {
@@ -265,17 +240,13 @@ public class OthelloGame {
                 else if (b[r][c] == BLACK) posScore -= WEIGHTS[r][c];
             }
 
-        // ===== 合法手数（機動力）=====
         int myMoves  = getValidMovesOnBoard(WHITE, b).size();
         int oppMoves = getValidMovesOnBoard(BLACK, b).size();
-        int mobilityScore = 0;
-        if (myMoves + oppMoves > 0)
-            mobilityScore = 100 * (myMoves - oppMoves) / (myMoves + oppMoves);
+        int mobilityScore = (myMoves + oppMoves > 0)
+            ? 100 * (myMoves - oppMoves) / (myMoves + oppMoves) : 0;
 
-        // ===== 確定石（角から連続して確定した石）=====
         int stabilityScore = countStableDiscs(b, WHITE) - countStableDiscs(b, BLACK);
 
-        // ===== 角の占有 =====
         int cornerScore = 0;
         int[][] corners = {{0,0},{0,7},{7,0},{7,7}};
         for (int[] corner : corners) {
@@ -283,18 +254,18 @@ public class OthelloGame {
             else if (b[corner[0]][corner[1]] == BLACK) cornerScore -= 25;
         }
 
-        // ===== 序盤・中盤・終盤で重みを変える =====
+        int score;
         if (total < 20) {
-            // 序盤: 機動力重視
-            return mobilityScore * 5 + posScore * 2 + cornerScore * 10;
+            score = mobilityScore * 5 + posScore * 2 + cornerScore * 10;
         } else if (total < 50) {
-            // 中盤: バランス
-            return mobilityScore * 3 + posScore * 2 + cornerScore * 15 + stabilityScore * 5;
+            score = mobilityScore * 3 + posScore * 2 + cornerScore * 15 + stabilityScore * 5;
         } else {
-            // 終盤: 石数・確定石重視
             int countScore = getScoreOnBoard(b, WHITE) - getScoreOnBoard(b, BLACK);
-            return countScore * 5 + stabilityScore * 10 + cornerScore * 10;
+            score = countScore * 5 + stabilityScore * 10 + cornerScore * 10;
         }
+
+        // AIがBLACKの場合は符号を逆にする（評価関数はWHITE視点なので）
+        return (aiColor == WHITE) ? score : -score;
     }
 
     private int getScoreOnBoard(int[][] b, int player) {
@@ -303,14 +274,11 @@ public class OthelloGame {
         return count;
     }
 
-    // 簡易確定石カウント（角から広がる確定済みの石）
     private int countStableDiscs(int[][] b, int player) {
         boolean[][] stable = new boolean[8][8];
         int[][] corners = {{0,0},{0,7},{7,0},{7,7}};
         for (int[] c : corners) {
-            if (b[c[0]][c[1]] == player) {
-                spreadStable(b, stable, player, c[0], c[1]);
-            }
+            if (b[c[0]][c[1]] == player) spreadStable(b, stable, player, c[0], c[1]);
         }
         int count = 0;
         for (boolean[] row : stable) for (boolean v : row) if (v) count++;
@@ -321,10 +289,8 @@ public class OthelloGame {
         if (r < 0 || r >= 8 || c < 0 || c >= 8) return;
         if (stable[r][c] || b[r][c] != player) return;
         stable[r][c] = true;
-        // 隣接する同色の石にも伝播
-        for (int[] dir : new int[][]{{0,1},{1,0},{0,-1},{-1,0}}) {
+        for (int[] dir : new int[][]{{0,1},{1,0},{0,-1},{-1,0}})
             spreadStable(b, stable, player, r + dir[0], c + dir[1]);
-        }
     }
 
     private int[][] copyBoard(int[][] b) {
