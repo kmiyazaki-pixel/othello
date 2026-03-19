@@ -182,8 +182,8 @@ public class OthelloGame {
         return moves;
     }
 
-    private long timeLimitEnd;
-    private boolean timeUp;
+    private long timeLimitEnd = Long.MAX_VALUE;
+    private boolean timeUp = false;
 
     private int[] iterativeDeepening(int[][] b, long timeLimitMs) {
         this.timeLimitEnd = System.currentTimeMillis() + timeLimitMs;
@@ -201,7 +201,7 @@ public class OthelloGame {
     }
 
     private int[] minimax(int[][] b, int depth, int alpha, int beta, boolean maximizing) {
-        if (timeUp || System.currentTimeMillis() >= timeLimitEnd) {
+        if (timeLimitEnd != Long.MAX_VALUE && (timeUp || System.currentTimeMillis() >= timeLimitEnd)) {
             timeUp = true;
             return new int[]{evaluate(b), -1, -1};
         }
