@@ -1096,7 +1096,14 @@ function renderRanking() {
   const medals = ['🥇','🥈','🥉'];
   filtered.forEach((e,i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${medals[i]||i+1}</td><td>${e.name}</td><td><strong>${e.score}</strong></td><td style="font-size:.72rem;color:var(--text-dim)">${e.date}</td>`;
+    // UTCをJSTに変換（+9時間）
+    const [md, hm] = e.date.split(' ');
+    const [month, day] = md.split('/');
+    const [hour, min] = hm.split(':');
+    const utcDate = new Date(2026, parseInt(month)-1, parseInt(day), parseInt(hour), parseInt(min));
+    const jstDate = new Date(utcDate.getTime() + 9*60*60*1000);
+    const jstStr = `${String(jstDate.getMonth()+1).padStart(2,'0')}/${String(jstDate.getDate()).padStart(2,'0')} ${String(jstDate.getHours()).padStart(2,'0')}:${String(jstDate.getMinutes()).padStart(2,'0')}`;
+    tr.innerHTML = `<td>${medals[i]||i+1}</td><td>${e.name}</td><td><strong>${e.score}</strong></td><td style="font-size:.72rem;color:var(--text-dim)">${jstStr}</td>`;
     tbody.appendChild(tr);
   });
 }
