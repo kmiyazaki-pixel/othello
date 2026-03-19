@@ -130,21 +130,35 @@ public class GameController {
     @GetMapping("/debug")
     public Map<String, Object> debug() {
         Map<String, Object> result = new HashMap<>();
+
+        // 設定値を確認
         try {
-            // DB接続テスト
+            javax.sql.DataSource ds = jdbc.getDataSource();
+            if (ds instanceof com.zaxxer.hikari.HikariDataSource) {
+                com.zaxxer.hikari.HikariDataSource hds = (com.zaxxer.hikari.HikariDataSource) ds;
+                result.put("jdbc_url", hds.getJdbcUrl());
+                result.put("username", hds.getUsername());
+            }
+        } catch (Exception e) {
+            result.put("datasource_info_error", e.getMessage());
+        }
+
+        try {
             jdbc.queryForObject("SELECT 1", Integer.class);
             result.put("db", "connected");
         } catch (Exception e) {
             result.put("db", "FAILED: " + e.getMessage());
+            // 根本原因を取得
+            Throwable cause = e.getCause();
+            if (cause != null) result.put("cause", cause.getMessage());
+            Throwable root = cause != null ? cause.getCause() : null;
+            if (root != null) result.put("root_cause", root.getMessage());
         }
         try {
-            // テーブル存在確認
-            Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM ranking", Integer.class);
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM ranking", Integer.class);
             result.put("ranking_rows", count);
         } catch (Exception e) {
             result.put("ranking_table", "MISSING: " + e.getMessage());
-            // テーブルを今すぐ作る
             try {
                 jdbc.execute(
                     "CREATE TABLE IF NOT EXISTS ranking (" +
