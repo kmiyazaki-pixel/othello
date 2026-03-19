@@ -112,11 +112,13 @@ public class OthelloGame {
         if (difficulty == Difficulty.EASY) {
             int[] picked = moves.get((int)(Math.random() * moves.size()));
             best = new int[]{0, picked[0], picked[1]};
+        } else if (difficulty == Difficulty.EXPERT) {
+            // 反復深化: 時間制限2秒以内で深さを上げていく
+            best = iterativeDeepening(board, 2000);
         } else {
             int depth = switch (difficulty) {
                 case NORMAL -> 4;
                 case HARD   -> 7;
-                case EXPERT -> 10;
                 default     -> 4;
             };
             best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
@@ -167,7 +169,34 @@ public class OthelloGame {
         return moves;
     }
 
+    private long timeLimitMs;
+    private boolean timeUp;
+
+    private int[] iterativeDeepening(int[][] b, long timeLimitMs) {
+        this.timeLimitMs = System.currentTimeMillis() + timeLimitMs;
+        this.timeUp = false;
+        int[] best = new int[]{0, -1, -1};
+        List<int[]> moves = getValidMovesOnBoard(WHITE, b);
+        if (!moves.isEmpty()) {
+            best[1] = moves.get(0)[0];
+            best[2] = moves.get(0)[1];
+        }
+        for (int depth = 1; depth <= 12; depth++) {
+            if (System.currentTimeMillis() >= this.timeLimitMs) break;
+            int[] result = minimax(b, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+            if (!timeUp && result[1] >= 0) {
+                best = result;
+            }
+            if (timeUp) break;
+        }
+        return best;
+    }
+
     private int[] minimax(int[][] b, int depth, int alpha, int beta, boolean maximizing) {
+        if (timeUp || System.currentTimeMillis() >= timeLimitMs) {
+            timeUp = true;
+            return new int[]{evaluate(b), -1, -1};
+        }
         int player = maximizing ? WHITE : BLACK;
         List<int[]> moves = getValidMovesOnBoard(player, b);
         if (depth == 0 || moves.isEmpty()) return new int[]{evaluate(b), -1, -1};
