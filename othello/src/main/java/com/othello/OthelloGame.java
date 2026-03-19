@@ -9,7 +9,7 @@ public class OthelloGame {
     public static final int BLACK = 1;
     public static final int WHITE = 2;
 
-    public enum Difficulty { EASY, NORMAL, HARD }
+    public enum Difficulty { EASY, NORMAL, HARD, EXPERT }
     public enum Mode { VS_AI, VS_HUMAN }
 
     private int[][] board;
@@ -85,10 +85,13 @@ public class OthelloGame {
         return false;
     }
 
-    public boolean playerMove(int row, int col) {
+    // player を明示的に受け取る（currentPlayerに依存しない）
+    public boolean playerMove(int row, int col, int player) {
         if (gameOver) return false;
-        if (!isValidMove(board, row, col, currentPlayer)) return false;
-        applyMove(board, row, col, currentPlayer);
+        // 今そのプレイヤーの番かチェック
+        if (currentPlayer != player) return false;
+        if (!isValidMove(board, row, col, player)) return false;
+        applyMove(board, row, col, player);
         advanceTurn();
         return true;
     }
@@ -98,21 +101,12 @@ public class OthelloGame {
         List<int[]> moves = getValidMoves(WHITE);
         if (moves.isEmpty()) { advanceTurn(); return null; }
 
-        int depth = switch (difficulty) {
-            case EASY   -> 1;
-            case NORMAL -> 3;
-            case HARD   -> 6;
-        };
-
         int[] best;
         if (difficulty == Difficulty.EASY) {
-            // Random move for easy
-            best = new int[]{0, moves.get((int)(Math.random() * moves.size()))[0],
-                                moves.get((int)(Math.random() * moves.size()))[1]};
-            // pick one random move properly
             int[] picked = moves.get((int)(Math.random() * moves.size()));
             best = new int[]{0, picked[0], picked[1]};
         } else {
+            int depth = (difficulty == Difficulty.NORMAL) ? 3 : 6;
             best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         }
 
@@ -143,7 +137,7 @@ public class OthelloGame {
         if (!getValidMovesOnBoard(next, board).isEmpty()) {
             currentPlayer = next;
         } else if (!getValidMovesOnBoard(currentPlayer, board).isEmpty()) {
-            // pass
+            // パス（currentPlayerはそのまま）
         } else {
             gameOver = true;
             int black = getScore(BLACK), white = getScore(WHITE);
@@ -186,13 +180,77 @@ public class OthelloGame {
     }
 
     private int evaluate(int[][] b) {
-        int score = 0;
+        int total = 0;
+        for (int[] row : b) for (int v : row) if (v != EMPTY) total++;
+
+        // ===== 位置評価 =====
+        int posScore = 0;
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++) {
-                if (b[r][c] == WHITE) score += WEIGHTS[r][c];
-                else if (b[r][c] == BLACK) score -= WEIGHTS[r][c];
+                if (b[r][c] == WHITE) posScore += WEIGHTS[r][c];
+                else if (b[r][c] == BLACK) posScore -= WEIGHTS[r][c];
             }
-        return score;
+
+        // ===== 合法手数（機動力）=====
+        int myMoves  = getValidMovesOnBoard(WHITE, b).size();
+        int oppMoves = getValidMovesOnBoard(BLACK, b).size();
+        int mobilityScore = 0;
+        if (myMoves + oppMoves > 0)
+            mobilityScore = 100 * (myMoves - oppMoves) / (myMoves + oppMoves);
+
+        // ===== 確定石（角から連続して確定した石）=====
+        int stabilityScore = countStableDiscs(b, WHITE) - countStableDiscs(b, BLACK);
+
+        // ===== 角の占有 =====
+        int cornerScore = 0;
+        int[][] corners = {{0,0},{0,7},{7,0},{7,7}};
+        for (int[] corner : corners) {
+            if (b[corner[0]][corner[1]] == WHITE) cornerScore += 25;
+            else if (b[corner[0]][corner[1]] == BLACK) cornerScore -= 25;
+        }
+
+        // ===== 序盤・中盤・終盤で重みを変える =====
+        if (total < 20) {
+            // 序盤: 機動力重視
+            return mobilityScore * 5 + posScore * 2 + cornerScore * 10;
+        } else if (total < 50) {
+            // 中盤: バランス
+            return mobilityScore * 3 + posScore * 2 + cornerScore * 15 + stabilityScore * 5;
+        } else {
+            // 終盤: 石数・確定石重視
+            int countScore = getScoreOnBoard(b, WHITE) - getScoreOnBoard(b, BLACK);
+            return countScore * 5 + stabilityScore * 10 + cornerScore * 10;
+        }
+    }
+
+    private int getScoreOnBoard(int[][] b, int player) {
+        int count = 0;
+        for (int[] row : b) for (int v : row) if (v == player) count++;
+        return count;
+    }
+
+    // 簡易確定石カウント（角から広がる確定済みの石）
+    private int countStableDiscs(int[][] b, int player) {
+        boolean[][] stable = new boolean[8][8];
+        int[][] corners = {{0,0},{0,7},{7,0},{7,7}};
+        for (int[] c : corners) {
+            if (b[c[0]][c[1]] == player) {
+                spreadStable(b, stable, player, c[0], c[1]);
+            }
+        }
+        int count = 0;
+        for (boolean[] row : stable) for (boolean v : row) if (v) count++;
+        return count;
+    }
+
+    private void spreadStable(int[][] b, boolean[][] stable, int player, int r, int c) {
+        if (r < 0 || r >= 8 || c < 0 || c >= 8) return;
+        if (stable[r][c] || b[r][c] != player) return;
+        stable[r][c] = true;
+        // 隣接する同色の石にも伝播
+        for (int[] dir : new int[][]{{0,1},{1,0},{0,-1},{-1,0}}) {
+            spreadStable(b, stable, player, r + dir[0], c + dir[1]);
+        }
     }
 
     private int[][] copyBoard(int[][] b) {
