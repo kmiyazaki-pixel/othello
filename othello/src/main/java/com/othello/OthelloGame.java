@@ -18,6 +18,7 @@ public class OthelloGame {
     private String winner;
     private Difficulty difficulty;
     private Mode mode;
+    private boolean playerIsWhite; // trueならプレイヤーが白、AIが黒
 
     private static final int[][] DIRECTIONS = {
         {-1,-1},{-1,0},{-1,1},
@@ -37,8 +38,13 @@ public class OthelloGame {
     };
 
     public OthelloGame(Difficulty difficulty, Mode mode) {
+        this(difficulty, mode, false);
+    }
+
+    public OthelloGame(Difficulty difficulty, Mode mode, boolean playerIsWhite) {
         this.difficulty = difficulty;
         this.mode = mode;
+        this.playerIsWhite = playerIsWhite;
         board = new int[8][8];
         board[3][3] = WHITE; board[3][4] = BLACK;
         board[4][3] = BLACK; board[4][4] = WHITE;
@@ -58,6 +64,7 @@ public class OthelloGame {
     public String getWinner() { return winner; }
     public Difficulty getDifficulty() { return difficulty; }
     public Mode getMode() { return mode; }
+    public boolean isPlayerWhite() { return playerIsWhite; }
 
     public int getScore(int player) {
         int count = 0;
@@ -87,14 +94,40 @@ public class OthelloGame {
 
     // player を明示的に受け取る（currentPlayerに依存しない）
     public boolean playerMove(int row, int col) {
-        if (gameOver || currentPlayer != BLACK) return false;
-        if (!isValidMove(board, row, col, BLACK)) return false;
-        applyMove(board, row, col, BLACK);
+        int playerColor = playerIsWhite ? WHITE : BLACK;
+        if (gameOver || currentPlayer != playerColor) return false;
+        if (!isValidMove(board, row, col, playerColor)) return false;
+        applyMove(board, row, col, playerColor);
         advanceTurn();
         return true;
     }
 
     // 2人対戦用：currentPlayerに関わらず任意プレイヤーが置ける
+    // 後攻選択時にAI（黒）が最初に打つ用
+    public int[] aiMoveAsBlack() {
+        if (gameOver || currentPlayer != BLACK) return null;
+        List<int[]> moves = getValidMoves(BLACK);
+        if (moves.isEmpty()) { advanceTurn(); return null; }
+        int[] best;
+        if (difficulty == Difficulty.EASY) {
+            int[] picked = moves.get((int)(Math.random() * moves.size()));
+            best = new int[]{0, picked[0], picked[1]};
+        } else if (difficulty == Difficulty.EXPERT) {
+            best = iterativeDeepening(board, 2000);
+        } else {
+            int depth = switch (difficulty) {
+                case NORMAL -> 4;
+                case HARD   -> 7;
+                default     -> 4;
+            };
+            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
+        }
+        int row = best[1], col = best[2];
+        applyMove(board, row, col, BLACK);
+        advanceTurn();
+        return new int[]{row, col};
+    }
+
     public boolean playerMoveAs(int row, int col, int player) {
         if (gameOver || currentPlayer != player) return false;
         if (!isValidMove(board, row, col, player)) return false;
@@ -104,8 +137,9 @@ public class OthelloGame {
     }
 
     public int[] aiMove() {
-        if (gameOver || mode == Mode.VS_HUMAN || currentPlayer != WHITE) return null;
-        List<int[]> moves = getValidMoves(WHITE);
+        int aiColor = playerIsWhite ? BLACK : WHITE;
+        if (gameOver || mode == Mode.VS_HUMAN || currentPlayer != aiColor) return null;
+        List<int[]> moves = getValidMoves(aiColor);
         if (moves.isEmpty()) { advanceTurn(); return null; }
 
         int[] best;
@@ -113,7 +147,6 @@ public class OthelloGame {
             int[] picked = moves.get((int)(Math.random() * moves.size()));
             best = new int[]{0, picked[0], picked[1]};
         } else if (difficulty == Difficulty.EXPERT) {
-            // 反復深化: 時間制限2秒以内で深さを上げていく
             best = iterativeDeepening(board, 2000);
         } else {
             int depth = switch (difficulty) {
@@ -125,7 +158,7 @@ public class OthelloGame {
         }
 
         int row = best[1], col = best[2];
-        applyMove(board, row, col, WHITE);
+        applyMove(board, row, col, aiColor);
         advanceTurn();
         return new int[]{row, col};
     }
