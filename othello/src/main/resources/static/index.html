@@ -771,6 +771,9 @@ async function startGame() {
     document.getElementById('black-name').textContent = 'AI（黒）';
     document.getElementById('white-name').textContent = playerName + '（白）';
   }
+  // score cardのactiveをプレイヤー色に合わせてリセット
+  document.getElementById('black-card').classList.toggle('active', selectedOrder === 'black');
+  document.getElementById('white-card').classList.toggle('active', selectedOrder === 'white');
   document.getElementById('view-start').style.display = 'none';
   document.getElementById('view-play').style.display = 'flex';
   render();
@@ -888,7 +891,7 @@ async function makeMove(row, col) {
     ws.send(JSON.stringify({type:'move', row, col}));
     return;
   }
-  const playerColorNum = (currentGameConfig.playerColor === 'white') ? WHITE : BLACK;
+  const playerColorNum = state.playerColor || BLACK;
   if (state.mode === 'VS_AI' && state.currentPlayer !== playerColorNum) return;
   if (!state.validMoves || !state.validMoves.some(m => m[0]===row && m[1]===col)) return;
   thinking = true;
@@ -1025,10 +1028,10 @@ function updateTurnBanner(aiThinking) {
     return;
   }
   if (isVsAI) {
-    const playerColorNum = (currentGameConfig.playerColor === 'white') ? WHITE : BLACK;
+    const playerColorNum = state.playerColor || BLACK;
     const isPlayerTurn = state.currentPlayer === playerColorNum;
-    const playerDiscColor = currentGameConfig.playerColor || 'black';
-    const aiDiscColor = playerDiscColor === 'black' ? 'white' : 'black';
+    const playerDiscColor = playerColorNum === BLACK ? 'black' : 'white';
+    const aiDiscColor = playerColorNum === BLACK ? 'white' : 'black';
     if (isPlayerTurn) {
       banner.className = 'turn-banner your-turn';
       disc.className = `turn-disc-big ${playerDiscColor} pulse`;
