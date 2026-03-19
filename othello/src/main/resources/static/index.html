@@ -1053,10 +1053,25 @@ function showResult() {
 }
 
 async function submitRanking() {
-  await fetch('/api/ranking/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: playerName}) });
+  // スコア・難易度・名前を直接送信（セッション依存を避ける）
+  const payload = {
+    name: playerName,
+    score: String(state.blackScore),
+    difficulty: selectedDiff
+  };
+  const res = await fetch('/api/ranking/submit', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
   document.getElementById('ranking-submit').style.display = 'none';
   document.getElementById('dialog-btns').style.display = 'flex';
-  document.getElementById('result-msg').textContent = `🏆 登録完了！スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
+  if (data.ok) {
+    document.getElementById('result-msg').textContent = `🏆 登録完了！スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
+  } else {
+    document.getElementById('result-msg').textContent = `⚠️ 登録失敗: ${data.error || data.reason || '不明なエラー'}`;
+  }
 }
 function skipRanking() {
   document.getElementById('ranking-submit').style.display = 'none';
