@@ -762,8 +762,10 @@ async function startGame() {
   await fetch('/api/name', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: playerName}) });
   currentGameConfig = { mode: 'vs_ai', difficulty: selectedDiff, playerColor: selectedOrder };
   const res = await fetch('/api/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(currentGameConfig) });
-  state = await res.json();
+  const data = await res.json();
+  state = data;
   prevBoard = null;
+
   if (selectedOrder === 'black') {
     document.getElementById('black-name').textContent = playerName + '（黒）';
     document.getElementById('white-name').textContent = 'AI（白）';
@@ -771,12 +773,18 @@ async function startGame() {
     document.getElementById('black-name').textContent = 'AI（黒）';
     document.getElementById('white-name').textContent = playerName + '（白）';
   }
-  // score cardのactiveをプレイヤー色に合わせてリセット
-  document.getElementById('black-card').classList.toggle('active', selectedOrder === 'black');
-  document.getElementById('white-card').classList.toggle('active', selectedOrder === 'white');
+
   document.getElementById('view-start').style.display = 'none';
   document.getElementById('view-play').style.display = 'flex';
-  render();
+
+  // 後攻の場合、AIが既に打っているのでアニメを表示
+  if (selectedOrder === 'white' && data.aiRow >= 0) {
+    renderBoard(data.board, -1, -1, data.aiRow, data.aiCol, null);
+    updateScores();
+    updateTurnBanner(false);
+  } else {
+    render();
+  }
 }
 
 function selectOrder(order) {
@@ -953,8 +961,9 @@ function makeDiscEl(color, animClass, delay) {
 function renderBoard(board, pr, pc, ar, ac, oldBoard) {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
+  const playerColorNum = state ? (state.playerColor || BLACK) : BLACK;
   const isMyTurnForHint = state && !state.gameOver && (
-    (state.mode === 'VS_AI' && state.currentPlayer === BLACK) ||
+    (state.mode === 'VS_AI' && state.currentPlayer === playerColorNum) ||
     (ws && myColor === (state.currentPlayer === BLACK ? 'black' : 'white')) ||
     (!ws && state.mode !== 'VS_AI')
   );
