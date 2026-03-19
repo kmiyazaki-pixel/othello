@@ -11,4 +11,5 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/othello-1.0.0.jar app.jar
 EXPOSE 8080
+# cache bust: 1
 ENTRYPOINT ["java", "-jar", "app.jar"]
