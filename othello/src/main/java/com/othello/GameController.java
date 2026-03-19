@@ -113,9 +113,32 @@ public class GameController {
     }
 
     @PostMapping("/ranking/submit")
-    public Map<String, Object> submitRanking(HttpSession session) {
+    public Map<String, Object> submitRanking(
+            @RequestBody(required = false) Map<String, String> body,
+            HttpSession session) {
+        // まずセッションからゲームを試みる
         OthelloGame game = getGame(session);
-        if (game == null || !game.isGameOver()) return Map.of("ok", false);
+
+        // フロントから直接データを受け取る（セッション切れ対策）
+        if (body != null && body.containsKey("score") && body.containsKey("difficulty")) {
+            String name = body.getOrDefault("name", "Player");
+            int score = Integer.parseInt(body.get("score"));
+            String difficulty = body.get("difficulty");
+            try {
+                jdbc.update(
+                    "INSERT INTO ranking (name, score, difficulty) VALUES (?, ?, ?)",
+                    name, score, difficulty
+                );
+                System.out.println("=== ランキング登録: " + name + " score=" + score + " diff=" + difficulty + " ===");
+                return Map.of("ok", true);
+            } catch (Exception e) {
+                System.err.println("=== ランキング保存失敗: " + e.getMessage() + " ===");
+                return Map.of("ok", false, "error", e.getMessage());
+            }
+        }
+
+        // フォールバック: セッションから取得
+        if (game == null || !game.isGameOver()) return Map.of("ok", false, "reason", "game not over");
         String name = (String) session.getAttribute("playerName");
         if (name == null) name = "Player";
         saveRanking(name, game);

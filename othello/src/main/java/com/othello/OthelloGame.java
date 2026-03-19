@@ -113,7 +113,12 @@ public class OthelloGame {
             int[] picked = moves.get((int)(Math.random() * moves.size()));
             best = new int[]{0, picked[0], picked[1]};
         } else {
-            int depth = (difficulty == Difficulty.NORMAL) ? 3 : 6;
+            int depth = switch (difficulty) {
+                case NORMAL -> 4;
+                case HARD   -> 7;
+                case EXPERT -> 10;
+                default     -> 4;
+            };
             best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
         }
 
