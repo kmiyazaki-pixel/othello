@@ -143,6 +143,7 @@ body {
 .diff-btn.easy.selected   { border-color: #81c784; background: rgba(129,199,132,0.12); color: var(--text); box-shadow: 0 0 15px rgba(129,199,132,0.2); }
 .diff-btn.normal.selected { border-color: #ffb74d; background: rgba(255,183,77,0.1);   color: var(--text); box-shadow: 0 0 15px rgba(255,183,77,0.2); }
 .diff-btn.hard.selected   { border-color: #ef5350; background: rgba(239,83,80,0.1);    color: var(--text); box-shadow: 0 0 15px rgba(239,83,80,0.2); }
+.diff-btn.expert.selected { border-color: #aa00ff; background: rgba(170,0,255,0.1);  color: var(--text); box-shadow: 0 0 15px rgba(170,0,255,0.3); }
 .start-btn {
   padding: 15px;
   background: linear-gradient(135deg, #1b5e20, #2e7d32, #388e3c);
@@ -507,6 +508,7 @@ body {
           <button class="diff-btn easy"            onclick="selectDiff('EASY')">😊 やさしい</button>
           <button class="diff-btn normal selected"  onclick="selectDiff('NORMAL')">😐 ふつう</button>
           <button class="diff-btn hard"             onclick="selectDiff('HARD')">😈 むずかしい</button>
+          <button class="diff-btn expert"           onclick="selectDiff('EXPERT')">💀 鬼</button>
         </div>
       </div>
       <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
@@ -581,7 +583,8 @@ body {
       <button class="btn outline" style="font-size:.72rem;padding:5px 10px" onclick="clearRanking()">🗑 クリア</button>
     </div>
     <div class="rank-tabs">
-      <button class="rank-tab active" onclick="switchRankTab('HARD',this)">😈 むずかしい</button>
+      <button class="rank-tab active" onclick="switchRankTab('EXPERT',this)">💀 鬼</button>
+      <button class="rank-tab" onclick="switchRankTab('HARD',this)">😈 むずかしい</button>
       <button class="rank-tab" onclick="switchRankTab('NORMAL',this)">😐 ふつう</button>
       <button class="rank-tab" onclick="switchRankTab('EASY',this)">😊 やさしい</button>
     </div>
@@ -717,7 +720,7 @@ let state = null, showHints = false, thinking = false;
 let prevBoard = null, selectedMode = 'ai', selectedDiff = 'NORMAL';
 let currentGameConfig = {}, playerName = 'Player';
 let ws = null, myColor = null;
-const AI_DELAY = { EASY: 700, NORMAL: 1200, HARD: 1800 };
+const AI_DELAY = { EASY: 700, NORMAL: 1200, HARD: 1800, EXPERT: 2500 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function switchTab(tab, el) {
@@ -1061,7 +1064,7 @@ function skipRanking() {
 }
 
 // ===== RANKING =====
-let currentRankDiff = 'HARD', allRanking = [];
+let currentRankDiff = 'EXPERT', allRanking = [];
 function switchRankTab(diff, el) {
   currentRankDiff = diff;
   document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active'));
