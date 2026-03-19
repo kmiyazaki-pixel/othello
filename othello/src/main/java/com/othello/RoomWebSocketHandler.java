@@ -120,7 +120,7 @@ public class RoomWebSocketHandler extends TextWebSocketHandler {
         // 自分の番かチェック
         if (room.game.getCurrentPlayer() != color) return;
 
-        boolean moved = room.game.playerMove(row, col);
+        boolean moved = room.game.playerMoveAs(row, col, color);
         if (!moved) return;
 
         Map<String, Object> state = new HashMap<>();

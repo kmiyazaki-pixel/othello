@@ -86,10 +86,17 @@ public class OthelloGame {
     }
 
     // player を明示的に受け取る（currentPlayerに依存しない）
-    public boolean playerMove(int row, int col, int player) {
-        if (gameOver) return false;
-        // 今そのプレイヤーの番かチェック
-        if (currentPlayer != player) return false;
+    public boolean playerMove(int row, int col) {
+        if (gameOver || currentPlayer != BLACK) return false;
+        if (!isValidMove(board, row, col, BLACK)) return false;
+        applyMove(board, row, col, BLACK);
+        advanceTurn();
+        return true;
+    }
+
+    // 2人対戦用：currentPlayerに関わらず任意プレイヤーが置ける
+    public boolean playerMoveAs(int row, int col, int player) {
+        if (gameOver || currentPlayer != player) return false;
         if (!isValidMove(board, row, col, player)) return false;
         applyMove(board, row, col, player);
         advanceTurn();
