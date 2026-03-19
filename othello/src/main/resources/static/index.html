@@ -1080,8 +1080,8 @@ function toggleHints() {
 
 function showResult() {
   const w = state.winner, isVsAI = state.mode === 'VS_AI';
-  const playerColorNum = state.playerColor || BLACK;
-  const playerWinner = playerColorNum === BLACK ? 'black' : 'white';
+  // selectedOrder は 'black' or 'white'（スタート時に選んだ値）
+  const playerWinner = (currentGameConfig.playerColor || 'black');
   const isPlayerWin = w === playerWinner && isVsAI;
   const isWin = isPlayerWin;
   let emoji, title;
