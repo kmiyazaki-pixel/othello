@@ -1080,9 +1080,22 @@ function toggleHints() {
 
 function showResult() {
   const w = state.winner, isVsAI = state.mode === 'VS_AI';
-  const isWin = w === 'black' && isVsAI;
-  document.getElementById('result-emoji').textContent = w==='draw'?'🤝':w==='black'?(isVsAI?'🎉':'⚫'):(isVsAI?'🤖':'⚪');
-  document.getElementById('result-title').textContent = w==='draw'?'引き分け！':w==='black'?(isVsAI?'あなたの勝ち！':'黒の勝ち！'):(isVsAI?'AIの勝ち…':'白の勝ち！');
+  const playerColorNum = state.playerColor || BLACK;
+  const playerWinner = playerColorNum === BLACK ? 'black' : 'white';
+  const isPlayerWin = w === playerWinner && isVsAI;
+  const isWin = isPlayerWin;
+  let emoji, title;
+  if (w === 'draw') {
+    emoji = '🤝'; title = '引き分け！';
+  } else if (isVsAI) {
+    if (isPlayerWin) { emoji = '🎉'; title = 'あなたの勝ち！'; }
+    else             { emoji = '🤖'; title = 'AIの勝ち…'; }
+  } else {
+    emoji = w === 'black' ? '⚫' : '⚪';
+    title = w === 'black' ? '黒の勝ち！' : '白の勝ち！';
+  }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
   document.getElementById('result-msg').textContent = `最終スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
   document.getElementById('ranking-submit').style.display = isWin ? '' : 'none';
   document.getElementById('dialog-btns').style.display = isWin ? 'none' : 'flex';
