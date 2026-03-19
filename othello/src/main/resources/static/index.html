@@ -1104,10 +1104,11 @@ function showResult() {
 }
 
 async function submitRanking() {
-  // スコア・難易度・名前を直接送信（セッション依存を避ける）
+  // プレイヤーの色に応じたスコアを送信
+  const playerScore = (currentGameConfig.playerColor === 'white') ? state.whiteScore : state.blackScore;
   const payload = {
     name: playerName,
-    score: String(state.blackScore),
+    score: String(playerScore),
     difficulty: selectedDiff
   };
   const res = await fetch('/api/ranking/submit', {
@@ -1119,7 +1120,7 @@ async function submitRanking() {
   document.getElementById('ranking-submit').style.display = 'none';
   document.getElementById('dialog-btns').style.display = 'flex';
   if (data.ok) {
-    document.getElementById('result-msg').textContent = `🏆 登録完了！スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}`;
+    document.getElementById('result-msg').textContent = `🏆 登録完了！スコア: 黒 ${state.blackScore} - 白 ${state.whiteScore}（あなた: ${playerScore}）`;
   } else {
     document.getElementById('result-msg').textContent = `⚠️ 登録失敗: ${data.error || data.reason || '不明なエラー'}`;
   }
