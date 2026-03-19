@@ -38,16 +38,39 @@ public class GameController {
         OthelloGame.Difficulty diff = OthelloGame.Difficulty.NORMAL;
         OthelloGame.Mode mode = OthelloGame.Mode.VS_AI;
 
+        Map<String, Object> result = null;
+        boolean playerIsWhite = false;
         if (body != null) {
             if (body.containsKey("difficulty"))
                 diff = OthelloGame.Difficulty.valueOf(body.get("difficulty").toUpperCase());
             if ("vs_human".equalsIgnoreCase(body.get("mode")))
                 mode = OthelloGame.Mode.VS_HUMAN;
+            if ("white".equalsIgnoreCase(body.get("playerColor")))
+                playerIsWhite = true;
         }
 
-        OthelloGame game = new OthelloGame(diff, mode);
+        OthelloGame game = new OthelloGame(diff, mode, playerIsWhite);
         session.setAttribute("game", game);
-        return buildState(game);
+
+        // 後攻（プレイヤーが白）の場合、AIが先に打つ
+        if (playerIsWhite && mode == OthelloGame.Mode.VS_AI) {
+            result = new HashMap<>();
+            result.put("boardAfterPlayer", game.getBoard());
+            List<int[]> aiMoves = new ArrayList<>();
+            while (!game.isGameOver() && game.getCurrentPlayer() == OthelloGame.BLACK) {
+                int[] aiPos = game.aiMoveAsBlack();
+                if (aiPos != null) aiMoves.add(aiPos);
+            }
+            if (!aiMoves.isEmpty()) {
+                int[] lastAI = aiMoves.get(aiMoves.size() - 1);
+                result.put("aiRow", lastAI[0]);
+                result.put("aiCol", lastAI[1]);
+            }
+        }
+
+        Map<String, Object> state = buildState(game);
+        if (result != null) state.putAll(result);
+        return state;
     }
 
     @PostMapping("/move")
@@ -66,9 +89,9 @@ public class GameController {
             result.put("boardAfterPlayer", game.getBoard());
 
             List<int[]> aiMoves = new ArrayList<>();
-            // 黒に置ける場所がない間AIが打ち続ける
-            while (!game.isGameOver() && game.getCurrentPlayer() == OthelloGame.WHITE) {
-                int[] aiPos = game.aiMove();
+            int aiColor = game.isPlayerWhite() ? OthelloGame.BLACK : OthelloGame.WHITE;
+            while (!game.isGameOver() && game.getCurrentPlayer() == aiColor) {
+                int[] aiPos = game.isPlayerWhite() ? game.aiMoveAsBlack() : game.aiMove();
                 if (aiPos != null) aiMoves.add(aiPos);
             }
 
