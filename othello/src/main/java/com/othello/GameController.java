@@ -1,6 +1,5 @@
 package com.othello;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -15,23 +14,6 @@ public class GameController {
 
     public GameController(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
-    }
-
-    @PostConstruct
-    public void initDb() {
-        try {
-            jdbc.execute(
-                "CREATE TABLE IF NOT EXISTS ranking (" +
-                "id SERIAL PRIMARY KEY, " +
-                "name VARCHAR(50) NOT NULL, " +
-                "score INTEGER NOT NULL, " +
-                "difficulty VARCHAR(10) NOT NULL, " +
-                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-            );
-            System.out.println("=== rankingテーブル準備完了 ===");
-        } catch (Exception e) {
-            System.err.println("=== テーブル作成失敗: " + e.getMessage() + " ===");
-        }
     }
 
     private OthelloGame getGame(HttpSession session) {
@@ -143,6 +125,40 @@ public class GameController {
         if (name == null) name = "Player";
         saveRanking(name, game);
         return Map.of("ok", true);
+    }
+
+    @GetMapping("/debug")
+    public Map<String, Object> debug() {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // DB接続テスト
+            jdbc.queryForObject("SELECT 1", Integer.class);
+            result.put("db", "connected");
+        } catch (Exception e) {
+            result.put("db", "FAILED: " + e.getMessage());
+        }
+        try {
+            // テーブル存在確認
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ranking", Integer.class);
+            result.put("ranking_rows", count);
+        } catch (Exception e) {
+            result.put("ranking_table", "MISSING: " + e.getMessage());
+            // テーブルを今すぐ作る
+            try {
+                jdbc.execute(
+                    "CREATE TABLE IF NOT EXISTS ranking (" +
+                    "id SERIAL PRIMARY KEY, " +
+                    "name VARCHAR(50) NOT NULL, " +
+                    "score INTEGER NOT NULL, " +
+                    "difficulty VARCHAR(10) NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+                result.put("table_created", true);
+            } catch (Exception e2) {
+                result.put("table_create_error", e2.getMessage());
+            }
+        }
+        return result;
     }
 
     @GetMapping("/ranking")
