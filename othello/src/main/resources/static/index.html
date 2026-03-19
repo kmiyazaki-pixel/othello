@@ -511,6 +511,13 @@ body {
           <button class="diff-btn expert"           onclick="selectDiff('EXPERT')">💀 鬼</button>
         </div>
       </div>
+      <div id="order-section">
+        <h2>先攻・後攻</h2>
+        <div class="diff-select">
+          <button class="diff-btn easy selected" id="order-black" onclick="selectOrder('black')">⚫ 先攻（黒）</button>
+          <button class="diff-btn hard" id="order-white" onclick="selectOrder('white')">⚪ 後攻（白）</button>
+        </div>
+      </div>
       <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
     </div>
   </div>
@@ -719,7 +726,7 @@ const BLACK = 1, WHITE = 2;
 let state = null, showHints = false, thinking = false;
 let prevBoard = null, selectedMode = 'ai', selectedDiff = 'NORMAL';
 let currentGameConfig = {}, playerName = 'Player';
-let ws = null, myColor = null;
+let ws = null, myColor = null, selectedOrder = 'black';
 const AI_DELAY = { EASY: 700, NORMAL: 1200, HARD: 1800, EXPERT: 2500 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -736,6 +743,7 @@ function selectMode(mode) {
   document.getElementById('mode-ai').classList.toggle('selected', mode === 'ai');
   document.getElementById('mode-2p').classList.toggle('selected', mode === '2p');
   document.getElementById('diff-section').style.display = mode === 'ai' ? '' : 'none';
+  document.getElementById('order-section').style.display = mode === 'ai' ? '' : 'none';
 }
 function selectDiff(diff) {
   selectedDiff = diff;
@@ -752,15 +760,28 @@ async function startGame() {
     return;
   }
   await fetch('/api/name', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: playerName}) });
-  currentGameConfig = { mode: 'vs_ai', difficulty: selectedDiff };
+  currentGameConfig = { mode: 'vs_ai', difficulty: selectedDiff, playerColor: selectedOrder };
   const res = await fetch('/api/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(currentGameConfig) });
   state = await res.json();
   prevBoard = null;
-  document.getElementById('black-name').textContent = playerName + '（黒）';
-  document.getElementById('white-name').textContent = 'AI（白）';
+  if (selectedOrder === 'black') {
+    document.getElementById('black-name').textContent = playerName + '（黒）';
+    document.getElementById('white-name').textContent = 'AI（白）';
+  } else {
+    document.getElementById('black-name').textContent = 'AI（黒）';
+    document.getElementById('white-name').textContent = playerName + '（白）';
+  }
   document.getElementById('view-start').style.display = 'none';
   document.getElementById('view-play').style.display = 'flex';
   render();
+}
+
+function selectOrder(order) {
+  selectedOrder = order;
+  document.getElementById('order-black').classList.toggle('selected', order === 'black');
+  document.getElementById('order-black').classList.toggle('easy', order === 'black');
+  document.getElementById('order-white').classList.toggle('selected', order === 'white');
+  document.getElementById('order-white').classList.toggle('hard', order === 'white');
 }
 
 function backToModeSelect() {
@@ -867,7 +888,8 @@ async function makeMove(row, col) {
     ws.send(JSON.stringify({type:'move', row, col}));
     return;
   }
-  if (state.mode === 'VS_AI' && state.currentPlayer !== BLACK) return;
+  const playerColorNum = (currentGameConfig.playerColor === 'white') ? WHITE : BLACK;
+  if (state.mode === 'VS_AI' && state.currentPlayer !== playerColorNum) return;
   if (!state.validMoves || !state.validMoves.some(m => m[0]===row && m[1]===col)) return;
   thinking = true;
   const boardBeforePlayer = state.board.map(r=>[...r]);
@@ -1003,15 +1025,19 @@ function updateTurnBanner(aiThinking) {
     return;
   }
   if (isVsAI) {
-    if (isBlack) {
+    const playerColorNum = (currentGameConfig.playerColor === 'white') ? WHITE : BLACK;
+    const isPlayerTurn = state.currentPlayer === playerColorNum;
+    const playerDiscColor = currentGameConfig.playerColor || 'black';
+    const aiDiscColor = playerDiscColor === 'black' ? 'white' : 'black';
+    if (isPlayerTurn) {
       banner.className = 'turn-banner your-turn';
-      disc.className = 'turn-disc-big black pulse';
-      main.textContent = `${playerName}の番（黒）`;
+      disc.className = `turn-disc-big ${playerDiscColor} pulse`;
+      main.textContent = `${playerName}の番（${playerDiscColor === 'black' ? '黒' : '白'}）`;
       sub.textContent = '石を置いてください';
     } else {
       banner.className = 'turn-banner ai-turn';
-      disc.className = 'turn-disc-big white';
-      main.textContent = 'AI（白）の番';
+      disc.className = `turn-disc-big ${aiDiscColor}`;
+      main.textContent = `AI（${aiDiscColor === 'black' ? '黒' : '白'}）の番`;
       sub.textContent = '';
     }
   } else {
