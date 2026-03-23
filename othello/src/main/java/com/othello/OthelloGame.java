@@ -121,20 +121,25 @@ public class OthelloGame {
         if (moves.isEmpty()) { advanceTurn(); return null; }
 
         int[] best;
+        boolean maximizing = (aiColor == WHITE);
         if (difficulty == Difficulty.EASY) {
+            // やさしい: 完全ランダム
             int[] picked = moves.get((int)(Math.random() * moves.size()));
             best = new int[]{0, picked[0], picked[1]};
-        } else if (difficulty == Difficulty.EXPERT) {
-            best = iterativeDeepening(board, 2000);
+        } else if (difficulty == Difficulty.NORMAL) {
+            // ふつう: 50%の確率でランダム、50%で深さ2のミニマックス
+            if (Math.random() < 0.5) {
+                int[] picked = moves.get((int)(Math.random() * moves.size()));
+                best = new int[]{0, picked[0], picked[1]};
+            } else {
+                best = minimax(board, 2, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
+            }
+        } else if (difficulty == Difficulty.HARD) {
+            // むずかしい: 深さ4のミニマックス
+            best = minimax(board, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
         } else {
-            int depth = switch (difficulty) {
-                case NORMAL -> 4;
-                case HARD   -> 7;
-                default     -> 4;
-            };
-            // AIが最大化するか最小化するか（AIがBLACKなら最小化側）
-            boolean maximizing = (aiColor == WHITE);
-            best = minimax(board, depth, Integer.MIN_VALUE, Integer.MAX_VALUE, maximizing);
+            // 鬼: 反復深化（時間制限2秒）
+            best = iterativeDeepening(board, 2000);
         }
 
         int row = best[1], col = best[2];
